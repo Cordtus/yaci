@@ -8,11 +8,13 @@
 [![codecov](https://codecov.io/github/manifest-network/yaci/graph/badge.svg?token=E0fP14l7Ct)](https://codecov.io/github/manifest-network/yaci)
 [![Go Report Card](https://goreportcard.com/badge/github.com/manifest-network/yaci)](https://goreportcard.com/report/github.com/manifest-network/yaci)
 
-`yaci` is a command-line tool that connects to a gRPC server and extracts blockchain data.
+`yaci` is a command-line tool that connects to a gRPC server and extracts blockchain data, with an integrated modern block explorer for visualizing the indexed data.
 
 ## Use-case
 
-Off-chain indexing of block & transaction data.
+- Off-chain indexing of block & transaction data
+- Real-time blockchain monitoring and analytics
+- Full-featured block explorer with Cosmos and EVM support
 
 ## Requirements
 
@@ -25,11 +27,21 @@ Off-chain indexing of block & transaction data.
 
 ## Features
 
+### Indexer
 - Ability to extract block and transaction chain data to PostgreSQL.
 - Leverages gRPC server reflection; no need to specify the proto file.
 - (Nested) `Any` type are properly decoded.
 - Live monitoring of the blockchain.
 - Batch extraction of data.
+- Native EVM transaction support for Cosmos chains with EVM modules.
+
+### Block Explorer
+- Modern, responsive web interface for exploring indexed data
+- Real-time updates with live blockchain synchronization
+- Dual support for Cosmos and EVM transactions
+- Universal search across blocks, transactions, and addresses
+- Rich transaction details with message decoding
+- Chain statistics and analytics dashboard
 
 ## Installation
 
@@ -185,8 +197,9 @@ The configuration file is searched in the following order:
 
 ## Demo
 
-To run the demo, you need to have Docker installed on your system. Then, you can run the following command:
+To run the demo, you need to have Docker installed on your system.
 
+### Option 1: Basic Demo (PostgREST API)
 ```shell
 # Build and start the e2e environment
 make docker-up
@@ -194,13 +207,27 @@ make docker-up
 
 Wait for the e2e environment to start. Then, open a new browser tab and navigate to http://localhost:3000/blocks?order=id.desc to view the blocks and to http://localhost:3000/transactions to view the transactions.
 
-Run
-
+### Option 2: Full Block Explorer Demo
 ```shell
-make docker-down
+# Start the full explorer stack
+docker-compose -f docker-compose.explorer.yml up -d
 ```
 
-to stop the e2e environment.
+This starts the complete block explorer stack:
+- **Block Explorer UI**: http://localhost:3001
+- **PostgREST API**: http://localhost:3000
+- **Prometheus Metrics**: http://localhost:2112
+- **PgAdmin** (optional): http://localhost:8080
+
+To stop the environment:
+
+```shell
+# For basic demo
+make docker-down
+
+# For full explorer
+docker-compose -f docker-compose.explorer.yml down
+```
 
 ## Testing
 
