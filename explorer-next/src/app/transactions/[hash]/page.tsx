@@ -11,6 +11,7 @@ import { YaciAPIClient } from '@/lib/api/client'
 import { formatNumber, formatTimeAgo, formatHash } from '@/lib/utils'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
+import { MessageDetails } from '@/components/MessageDetails'
 
 const api = new YaciAPIClient()
 
@@ -272,23 +273,8 @@ export default function TransactionDetailPage({ params }: TransactionDetailPageP
 
                           <CollapsibleContent>
                             <div className="px-4 pb-4 space-y-4">
-                              {/* Message Details */}
-                              {message.sender && (
-                                <div className="bg-muted/30 rounded-lg p-3">
-                                  <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Sender</label>
-                                  <div className="flex items-center gap-2 mt-1">
-                                    <code className="text-sm font-mono">{message.sender}</code>
-                                    <Button
-                                      variant="ghost"
-                                      size="icon"
-                                      className="h-5 w-5"
-                                      onClick={() => copyToClipboard(message.sender)}
-                                    >
-                                      <Copy className="h-3 w-3" />
-                                    </Button>
-                                  </div>
-                                </div>
-                              )}
+                              {/* Message-Specific Details */}
+                              <MessageDetails type={message.type} metadata={message.metadata} />
 
                               {/* Events nested under message */}
                               {groupedEvents.length > 0 && (
