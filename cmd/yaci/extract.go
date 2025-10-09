@@ -64,6 +64,7 @@ func init() {
 	ExtractCmd.PersistentFlags().IntP("max-recv-msg-size", "m", 4194304, "Maximum gRPC message size in bytes (advanced)")
 	ExtractCmd.PersistentFlags().Bool("enable-prometheus", false, "Enable Prometheus metrics server")
 	ExtractCmd.PersistentFlags().String("prometheus-addr", "0.0.0.0:2112", "Address and port of the Prometheus metrics server")
+	ExtractCmd.PersistentFlags().Bool("enable-denom-resolver", false, "Enable automatic IBC denom resolution and indexing")
 
 	if err := viper.BindPFlags(ExtractCmd.PersistentFlags()); err != nil {
 		slog.Error("Failed to bind ExtractCmd flags", "error", err)
