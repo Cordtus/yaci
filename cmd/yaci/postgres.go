@@ -6,6 +6,7 @@ import (
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/jackc/pgx/v5/stdlib"
+	"github.com/manifest-network/yaci/internal/denom"
 	"github.com/manifest-network/yaci/internal/metrics"
 	"github.com/manifest-network/yaci/internal/output/postgresql"
 	"github.com/manifest-network/yaci/internal/utils"
@@ -34,6 +35,16 @@ var PostgresRunE = func(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("failed to create PostgreSQL output handler: %w", err)
 	}
 	defer outputHandler.Close()
+
+	// Initialize denom resolver if enabled
+	if extractConfig.EnableDenomResolver {
+		slog.Info("Enabling IBC denom resolver...")
+		db := stdlib.OpenDBFromPool(outputHandler.GetPool())
+		denomStorage := denom.NewStorage(db)
+		denomResolver := denom.NewResolver(gRPCClient, denomStorage)
+		denomExtractor := denom.NewExtractor(denomResolver)
+		extractor.SetDenomExtractor(denomExtractor)
+	}
 
 	if extractConfig.EnablePrometheus {
 		slog.Info("Starting Prometheus metrics server...")

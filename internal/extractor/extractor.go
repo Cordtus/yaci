@@ -1,6 +1,7 @@
 package extractor
 
 import (
+	"context"
 	"fmt"
 	"log/slog"
 
@@ -14,6 +15,18 @@ const (
 	blockMethodFullName = "cosmos.tx.v1beta1.Service.GetBlockWithTxs"
 	txMethodFullName    = "cosmos.tx.v1beta1.Service.GetTx"
 )
+
+// DenomExtractorInterface defines the interface for denom extraction
+type DenomExtractorInterface interface {
+	ProcessTransactionData(ctx context.Context, txData []byte) error
+}
+
+var denomExtractor DenomExtractorInterface
+
+// SetDenomExtractor sets the global denom extractor
+func SetDenomExtractor(extractor DenomExtractorInterface) {
+	denomExtractor = extractor
+}
 
 // Extract extracts blocks and transactions from a gRPC server.
 func Extract(gRPCClient *client.GRPCClient, outputHandler output.OutputHandler, config config.ExtractConfig) error {

@@ -20,6 +20,7 @@ type ExtractConfig struct {
 	MaxRecvMsgSize       int
 	EnablePrometheus     bool
 	PrometheusListenAddr string
+	EnableDenomResolver  bool
 }
 
 func (c ExtractConfig) Validate() error {
@@ -57,5 +58,6 @@ func LoadExtractConfigFromCLI() ExtractConfig {
 		MaxRecvMsgSize:       viper.GetInt("max-recv-msg-size"),
 		EnablePrometheus:     viper.GetBool("enable-prometheus"),
 		PrometheusListenAddr: viper.GetString("prometheus-addr"),
+		EnableDenomResolver:  viper.GetBool("enable-denom-resolver"),
 	}
 }

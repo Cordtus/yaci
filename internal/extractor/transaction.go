@@ -54,6 +54,14 @@ func extractTransactions(gRPCClient *client.GRPCClient, data map[string]interfac
 		}
 
 		transactions = append(transactions, transaction)
+
+		// Process denoms if extractor is enabled
+		if denomExtractor != nil {
+			if err := denomExtractor.ProcessTransactionData(gRPCClient.Ctx, txJsonBytes); err != nil {
+				// Log but don't fail transaction extraction
+				fmt.Printf("Warning: failed to extract denoms from transaction %s: %v\n", hashStr, err)
+			}
+		}
 	}
 
 	return transactions, nil
