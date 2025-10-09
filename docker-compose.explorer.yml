@@ -44,6 +44,7 @@ services:
       --live
       -k
       --enable-prometheus
+      --enable-denom-resolver
     environment:
       YACI_LOGLEVEL: info
     ports:

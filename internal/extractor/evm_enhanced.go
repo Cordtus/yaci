@@ -216,7 +216,7 @@ func extractTransactionsWithEVM(
 ) ([]*models.Transaction, []*evm.EnhancedTransaction, error) {
 	
 	// First, extract using the existing method to maintain compatibility
-	basicTransactions, err := ExtractTransactions(gRPCClient, data, maxRetries)
+	basicTransactions, err := extractTransactions(gRPCClient, data, maxRetries)
 	if err != nil {
 		return nil, nil, err
 	}

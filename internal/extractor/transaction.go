@@ -11,7 +11,7 @@ import (
 	"github.com/manifest-network/yaci/internal/utils"
 )
 
-func ExtractTransactions(gRPCClient *client.GRPCClient, data map[string]interface{}, maxRetries uint) ([]*models.Transaction, error) {
+func extractTransactions(gRPCClient *client.GRPCClient, data map[string]interface{}, maxRetries uint) ([]*models.Transaction, error) {
 	blockData, exists := data["block"].(map[string]interface{})
 	if !exists || blockData == nil {
 		return nil, nil
@@ -54,6 +54,14 @@ func ExtractTransactions(gRPCClient *client.GRPCClient, data map[string]interfac
 		}
 
 		transactions = append(transactions, transaction)
+
+		// Process denoms if extractor is enabled
+		if denomExtractor != nil {
+			if err := denomExtractor.ProcessTransactionData(gRPCClient.Ctx, txJsonBytes); err != nil {
+				// Log but don't fail transaction extraction
+				fmt.Printf("Warning: failed to extract denoms from transaction %s: %v\n", hashStr, err)
+			}
+		}
 	}
 
 	return transactions, nil
