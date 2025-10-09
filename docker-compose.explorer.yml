@@ -27,7 +27,7 @@ services:
       PGRST_DB_ANON_ROLE: postgres
       PGRST_SERVER_CORS_ALLOWED_ORIGINS: "*"
     ports:
-      - "3000:3000"
+      - "3010:3000"
     depends_on:
       postgres:
         condition: service_healthy
@@ -37,9 +37,10 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+    network_mode: "host"
     command: |
-      extract postgres manifest-ledger:9090
-      -p postgres://postgres:foobar@postgres:5432/yaci
+      extract postgres localhost:9090
+      -p postgres://postgres:foobar@localhost:5432/yaci
       --live
       -k
       --enable-prometheus
@@ -60,7 +61,7 @@ services:
     environment:
       DATABASE_URL: postgresql://postgres:foobar@postgres:5432/yaci
       POSTGREST_URL: http://postgrest:3000
-      NEXT_PUBLIC_POSTGREST_URL: http://localhost:3000
+      NEXT_PUBLIC_POSTGREST_URL: http://localhost:3010
       CHAIN_ID: manifest-1
     ports:
       - "3001:3000"

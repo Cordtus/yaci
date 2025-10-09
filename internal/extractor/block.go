@@ -155,7 +155,19 @@ func processSingleBlockWithRetry(gRPCClient *client.GRPCClient, blockHeight uint
 		return fmt.Errorf("failed to unmarshal block JSON: %w", err)
 	}
 
-	transactions, err := extractTransactions(gRPCClient, data, maxRetries)
+	basicTransactions, enhancedTransactions, err := extractTransactionsWithEVM(gRPCClient, data, maxRetries)
+	
+	// Use enhanced transactions if available, otherwise fall back to basic
+	var transactions []*models.Transaction
+	if enhancedTransactions != nil && len(enhancedTransactions) > 0 {
+		// Convert enhanced transactions back to basic format for existing output handler
+		transactions = make([]*models.Transaction, len(enhancedTransactions))
+		for i, enhanced := range enhancedTransactions {
+			transactions[i] = enhanced.Transaction
+		}
+	} else {
+		transactions = basicTransactions
+	}
 	if err != nil {
 		return fmt.Errorf("failed to extract transactions from block: %w", err)
 	}

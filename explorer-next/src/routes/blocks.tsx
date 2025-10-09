@@ -1,8 +1,6 @@
-'use client'
-
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import Link from 'next/link'
+import { Link } from 'react-router'
 import { Blocks } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
@@ -78,7 +76,7 @@ export default function BlocksPage() {
                   <TableRow key={block.id}>
                     <TableCell>
                       <Link
-                        href={`/blocks/${block.id}`}
+                        to={`/blocks/${block.id}`}
                         className="flex items-center gap-2 font-medium hover:text-primary"
                       >
                         <Blocks className="h-4 w-4" />

@@ -3,6 +3,7 @@
 export interface Block {
   id: number
   data: {
+    txs?: any[] // Decoded transaction objects at root level
     block: {
       header: {
         version: any
@@ -21,53 +22,60 @@ export interface Block {
         proposer_address: string
       }
       data: {
-        txs: string[]
+        txs?: string[] // Raw base64-encoded transaction bytes
       }
       evidence: any
       last_commit: any
     }
-    block_id: {
+    block_id?: {
+      hash: string
+      part_set_header: any
+    }
+    blockId?: {
       hash: string
       part_set_header: any
     }
   }
 }
 
+// Yaci indexer schema - transactions_main table
 export interface Transaction {
-  id: string
+  id: string // tx hash
   fee: {
     amount: Array<{
       denom: string
       amount: string
     }>
-    gas_limit: string
+    gasLimit: string // Note: yaci uses gasLimit not gas_limit
     payer?: string
     granter?: string
   }
-  memo: string
+  memo: string | null
   error: string | null
-  height: string
-  timestamp: string
-  proposal_id: string[] | null
+  height: number // bigint in DB
+  timestamp: string // timestamp with time zone
+  proposal_ids: string[] | null // Note: plural
 }
 
+// Yaci indexer schema - messages_main table
 export interface Message {
-  id: string
+  id: string // tx hash
   message_index: number
-  type: string
-  sender: string
-  mentions: string[]
-  metadata: any
+  type: string | null // message type URL
+  sender: string | null
+  mentions: string[] | null // array of addresses mentioned
+  metadata: any | null // parsed message fields as jsonb
 }
 
+// Yaci indexer schema - events_main table
 export interface Event {
-  id: string
+  id: string // tx hash
   event_index: number
   attr_index: number
   event_type: string
   attr_key: string
   attr_value: string
-  msg_index: number
+  msg_index: number | null // null for block-level events
 }
 
 // EVM-specific types

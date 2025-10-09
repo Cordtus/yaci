@@ -1,7 +1,5 @@
-'use client'
-
 import { useState, useRef, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
+import { useNavigate } from 'react-router'
 import { Search, Loader2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { YaciAPIClient } from '@/lib/api/client'
@@ -11,7 +9,7 @@ export function SearchBar() {
   const [query, setQuery] = useState('')
   const [isSearching, setIsSearching] = useState(false)
   const [isOpen, setIsOpen] = useState(false)
-  const router = useRouter()
+  const navigate = useNavigate()
   const inputRef = useRef<HTMLInputElement>(null)
   const api = new YaciAPIClient()
 
@@ -44,13 +42,13 @@ export function SearchBar() {
 
       switch (result.type) {
         case 'block':
-          router.push(`/blocks/${result.value.id}`)
+          navigate(`/blocks/${result.value.id}`)
           break
         case 'transaction':
-          router.push(`/transactions/${result.value.id}`)
+          navigate(`/transactions/${result.value.id}`)
           break
         case 'address':
-          router.push(`/address/${result.value.address}`)
+          navigate(`/address/${result.value.address}`)
           break
         default:
           toast.error('Unknown result type')

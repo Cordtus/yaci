@@ -11,7 +11,7 @@ import (
 	"github.com/manifest-network/yaci/internal/utils"
 )
 
-func extractTransactions(gRPCClient *client.GRPCClient, data map[string]interface{}, maxRetries uint) ([]*models.Transaction, error) {
+func ExtractTransactions(gRPCClient *client.GRPCClient, data map[string]interface{}, maxRetries uint) ([]*models.Transaction, error) {
 	blockData, exists := data["block"].(map[string]interface{})
 	if !exists || blockData == nil {
 		return nil, nil

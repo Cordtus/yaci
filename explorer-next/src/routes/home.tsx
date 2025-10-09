@@ -1,14 +1,15 @@
-'use client'
-
 import { useQuery } from '@tanstack/react-query'
 import { useEffect, useState } from 'react'
-import Link from 'next/link'
-import { ArrowRight, Blocks, Activity, TrendingUp, Users } from 'lucide-react'
+import { Link } from 'react-router'
+import { ArrowRight, Blocks, Activity, TrendingUp, Users, Gauge, DollarSign, Wallet } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { YaciAPIClient } from '@/lib/api/client'
 import { formatNumber, formatTimeAgo, formatHash, getTransactionStatus } from '@/lib/utils'
 import { Skeleton } from '@/components/ui/skeleton'
+import { getNetworkHealth } from '@/lib/api/prometheus'
+import { formatDenomAmount } from '@/lib/denom'
+import { DenomDisplay } from '@/components/common/DenomDisplay'
 
 const api = new YaciAPIClient()
 
@@ -47,6 +48,34 @@ export default function DashboardPage() {
     },
     refetchInterval: 2000,
     enabled: mounted, // Only run after client mount
+  })
+
+  const { data: feeRevenue } = useQuery({
+    queryKey: ['feeRevenue'],
+    queryFn: () => api.getTotalFeeRevenue(),
+    refetchInterval: 30000,
+    enabled: mounted,
+  })
+
+  const { data: gasEfficiency } = useQuery({
+    queryKey: ['gasEfficiency'],
+    queryFn: () => api.getGasEfficiency(1000),
+    refetchInterval: 30000,
+    enabled: mounted,
+  })
+
+  const { data: networkHealth } = useQuery({
+    queryKey: ['networkHealth'],
+    queryFn: () => getNetworkHealth(),
+    refetchInterval: 6000,
+    enabled: mounted,
+  })
+
+  const { data: gasPrice } = useQuery({
+    queryKey: ['gasPrice'],
+    queryFn: () => api.getAverageGasPrice(),
+    refetchInterval: 30000,
+    enabled: mounted,
   })
 
   // Display errors if any
@@ -103,9 +132,17 @@ export default function DashboardPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {statsLoading ? <Skeleton className="h-8 w-24" /> : stats?.active_validators || 'N/A'}
+              {statsLoading ? (
+                <Skeleton className="h-8 w-24" />
+              ) : stats?.active_validators > 0 ? (
+                stats.active_validators
+              ) : (
+                <span className="text-muted-foreground text-base">-</span>
+              )}
             </div>
-            <p className="text-xs text-muted-foreground">Active set</p>
+            <p className="text-xs text-muted-foreground">
+              {stats?.active_validators > 0 ? 'Active set' : 'Fetching validator data...'}
+            </p>
           </CardContent>
         </Card>
 
@@ -116,9 +153,103 @@ export default function DashboardPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {statsLoading ? <Skeleton className="h-8 w-24" /> : stats?.total_supply !== '0' ? formatNumber(stats?.total_supply || '0') : 'N/A'}
+              {statsLoading ? (
+                <Skeleton className="h-8 w-24" />
+              ) : stats?.total_supply && stats.total_supply !== '0' ? (
+                formatNumber(stats.total_supply)
+              ) : (
+                <span className="text-muted-foreground text-base">-</span>
+              )}
             </div>
-            <p className="text-xs text-muted-foreground">Native Token</p>
+            <p className="text-xs text-muted-foreground">
+              {stats?.total_supply && stats.total_supply !== '0' ? 'Native Token' : 'Requires gRPC query'}
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Additional Analytics Cards */}
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Fee Revenue</CardTitle>
+            <DollarSign className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {!feeRevenue ? (
+                <Skeleton className="h-8 w-24" />
+              ) : (
+                <div className="flex flex-wrap gap-2">
+                  {Object.entries(feeRevenue).map(([denom, amount]) => {
+                    const formatted = formatDenomAmount(amount, denom, { maxDecimals: 2 })
+                    return (
+                      <span key={denom} className="inline-flex items-center gap-1">
+                        {formatted} <DenomDisplay denom={denom} />
+                      </span>
+                    )
+                  })}
+                </div>
+              )}
+            </div>
+            <p className="text-xs text-muted-foreground">From recent transactions</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Gas Efficiency</CardTitle>
+            <Gauge className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {!gasEfficiency ? (
+                <Skeleton className="h-8 w-24" />
+              ) : (
+                `${gasEfficiency.avgEfficiency.toFixed(1)}%`
+              )}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              {gasEfficiency && `${(gasEfficiency.totalUsed / 1e6).toFixed(1)}M of ${(gasEfficiency.totalLimit / 1e6).toFixed(1)}M used`}
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Avg Gas Price</CardTitle>
+            <Wallet className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {!gasPrice || gasPrice.length === 0 ? (
+                <Skeleton className="h-8 w-24" />
+              ) : (
+                <div className="flex flex-wrap gap-2">
+                  {gasPrice.map((gp) => (
+                    <span key={gp.denom} className="inline-flex items-center gap-1">
+                      {gp.avgPrice.toFixed(4)} <DenomDisplay denom={gp.denom} />
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+            <p className="text-xs text-muted-foreground">Per gas unit</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Mempool Size</CardTitle>
+            <Activity className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {!networkHealth ? <Skeleton className="h-8 w-24" /> : networkHealth.mempoolSize}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              {networkHealth && `${(networkHealth.mempoolBytes / 1024).toFixed(1)}KB total`}
+            </p>
           </CardContent>
         </Card>
       </div>
@@ -129,7 +260,7 @@ export default function DashboardPage() {
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle>Latest Blocks</CardTitle>
             <Link
-              href="/blocks"
+              to="/blocks"
               className="text-sm text-muted-foreground hover:text-foreground flex items-center gap-1"
             >
               View all <ArrowRight className="h-4 w-4" />
@@ -153,7 +284,7 @@ export default function DashboardPage() {
                       </div>
                       <div>
                         <Link
-                          href={`/blocks/${block.id}`}
+                          to={`/blocks/${block.id}`}
                           className="font-medium hover:text-primary"
                         >
                           Block #{block.id}
@@ -183,7 +314,7 @@ export default function DashboardPage() {
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle>Latest Transactions</CardTitle>
             <Link
-              href="/transactions"
+              to="/transactions"
               className="text-sm text-muted-foreground hover:text-foreground flex items-center gap-1"
             >
               View all <ArrowRight className="h-4 w-4" />
@@ -209,7 +340,7 @@ export default function DashboardPage() {
                         </div>
                         <div>
                           <Link
-                            href={`/transactions/${tx.id}`}
+                            to={`/transactions/${tx.id}`}
                             className="font-medium hover:text-primary"
                           >
                             {formatHash(tx.id, 8)}

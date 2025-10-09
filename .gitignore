@@ -1,4 +1,64 @@
-.idea
+# Binaries
 bin/
-out/
-tsv/
+*.exe
+*.dll
+*.so
+*.dylib
+
+# Test binary
+*.test
+
+# Output of the go coverage tool
+*.out
+
+# Logs
+*.log
+
+# Node modules
+node_modules/
+
+# Build artifacts
+.next/
+.react-router/
+dist/
+build/
+
+# Lock files (keep package-lock.json but ignore yarn.lock)
+yarn.lock
+pnpm-lock.yaml
+
+# Environment files (but keep .env.example)
+.env
+.env.local
+.env.*.local
+!.env.example
+
+# Sensitive configuration
+config.yaml
+config.json
+config.toml
+secrets/
+*.key
+*.pem
+*.cert
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Backup files
+*.bak
+
+# Docker data
+docker-compose.yml
+
+# Claude AI files
+.claude/
+CLAUDE.md

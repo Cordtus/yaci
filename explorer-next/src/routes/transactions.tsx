@@ -1,8 +1,6 @@
-'use client'
-
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import Link from 'next/link'
+import { Link } from 'react-router'
 import { Activity, Filter, Check, X } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
@@ -103,7 +101,7 @@ export default function TransactionsPage() {
                     <TableRow key={tx.id}>
                       <TableCell>
                         <Link
-                          href={`/transactions/${tx.id}`}
+                          to={`/transactions/${tx.id}`}
                           className="flex items-center gap-2 font-medium hover:text-primary"
                         >
                           <Activity className="h-4 w-4" />
@@ -131,7 +129,7 @@ export default function TransactionsPage() {
                       </TableCell>
                       <TableCell>
                         <Link
-                          href={`/blocks/${tx.height}`}
+                          to={`/blocks/${tx.height}`}
                           className="text-sm hover:text-primary"
                         >
                           {tx.height}

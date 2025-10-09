@@ -1,8 +1,5 @@
-'use client'
-
-import Link from 'next/link'
-import { usePathname } from 'next/navigation'
-import { Search, Blocks, Activity, Home } from 'lucide-react'
+import { Link, useLocation } from 'react-router'
+import { Search, Blocks, Activity, Home, BarChart3 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { SearchBar } from '@/components/common/search-bar'
 
@@ -10,17 +7,19 @@ const navigation = [
   { name: 'Dashboard', href: '/', icon: Home },
   { name: 'Blocks', href: '/blocks', icon: Blocks },
   { name: 'Transactions', href: '/transactions', icon: Activity },
+  { name: 'Analytics', href: '/analytics', icon: BarChart3 },
 ]
 
 export function Header() {
-  const pathname = usePathname()
+  const location = useLocation()
+  const pathname = location.pathname
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container mx-auto px-4">
         <div className="flex h-16 items-center justify-between">
           <div className="flex items-center gap-6">
-            <Link href="/" className="flex items-center space-x-2">
+            <Link to="/" className="flex items-center space-x-2">
               <div className="h-8 w-8 rounded-full bg-primary" />
               <span className="text-xl font-bold">Yaci Explorer</span>
             </Link>
@@ -31,7 +30,7 @@ export function Header() {
                 return (
                   <Link
                     key={item.name}
-                    href={item.href}
+                    to={item.href}
                     className={cn(
                       'flex items-center gap-2 transition-colors hover:text-foreground/80',
                       pathname === item.href
@@ -50,10 +49,7 @@ export function Header() {
           <div className="flex items-center gap-4">
             <SearchBar />
 
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-muted-foreground">Network:</span>
-              <span className="text-xs font-medium">Manifest</span>
-            </div>
+            {/* Network info removed - will be added back with dynamic detection */}
           </div>
         </div>
       </div>
