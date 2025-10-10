@@ -12,8 +12,9 @@ interface BlockTimeData {
 }
 
 async function getBlockIntervalData(limit = 100): Promise<BlockTimeData[]> {
+  const baseUrl = process.env.NEXT_PUBLIC_POSTGREST_URL || 'http://localhost:3010'
   const response = await fetch(
-    `http://localhost:3010/blocks_raw?order=id.desc&limit=${limit}`
+    `${baseUrl}/blocks_raw?order=id.desc&limit=${limit}`
   )
   const blocks = await response.json()
 

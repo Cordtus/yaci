@@ -791,4 +791,115 @@ export class YaciAPIClient {
 
     return Array.from(denomSet)
   }
+
+  /**
+   * Get fee revenue over time grouped by day
+   */
+  async getFeeRevenueOverTime(days: number = 7): Promise<Array<{ date: string; revenue: Record<string, number> }>> {
+    const startDate = new Date()
+    startDate.setDate(startDate.getDate() - days)
+
+    const response = await fetch(
+      `${this.baseUrl}/transactions_main?select=timestamp,fee&timestamp=gte.${startDate.toISOString()}&order=timestamp.asc`
+    )
+
+    if (!response.ok) {
+      throw new Error('Failed to fetch fee revenue data')
+    }
+
+    const transactions = await response.json()
+    const revenueByDay: Record<string, Record<string, number>> = {}
+
+    transactions.forEach((tx: any) => {
+      const date = new Date(tx.timestamp).toISOString().split('T')[0]
+      if (!revenueByDay[date]) {
+        revenueByDay[date] = {}
+      }
+
+      if (tx.fee?.amount && Array.isArray(tx.fee.amount)) {
+        tx.fee.amount.forEach((coin: { amount: string; denom: string }) => {
+          const amount = parseFloat(coin.amount) || 0
+          revenueByDay[date][coin.denom] = (revenueByDay[date][coin.denom] || 0) + amount
+        })
+      }
+    })
+
+    return Object.entries(revenueByDay).map(([date, revenue]) => ({
+      date,
+      revenue,
+    }))
+  }
+
+  /**
+   * Get gas usage distribution across recent transactions
+   */
+  async getGasUsageDistribution(limit: number = 1000): Promise<Array<{ range: string; count: number }>> {
+    const response = await fetch(
+      `${this.baseUrl}/transactions_main?select=gas_used&order=height.desc&limit=${limit}`
+    )
+
+    if (!response.ok) {
+      throw new Error('Failed to fetch gas usage data')
+    }
+
+    const transactions = await response.json()
+    const ranges = [
+      { min: 0, max: 100000, label: '0-100k' },
+      { min: 100000, max: 250000, label: '100k-250k' },
+      { min: 250000, max: 500000, label: '250k-500k' },
+      { min: 500000, max: 1000000, label: '500k-1M' },
+      { min: 1000000, max: Infinity, label: '1M+' },
+    ]
+
+    const distribution = ranges.map((range) => ({
+      range: range.label,
+      count: 0,
+    }))
+
+    transactions.forEach((tx: any) => {
+      const gasUsed = parseInt(tx.gas_used) || 0
+      const rangeIndex = ranges.findIndex((r) => gasUsed >= r.min && gasUsed < r.max)
+      if (rangeIndex !== -1) {
+        distribution[rangeIndex].count++
+      }
+    })
+
+    return distribution
+  }
+
+  /**
+   * Get gas efficiency metrics
+   */
+  async getGasEfficiency(limit: number = 1000): Promise<{
+    avgEfficiency: number
+    totalUsed: number
+    totalLimit: number
+  }> {
+    const response = await fetch(
+      `${this.baseUrl}/transactions_main?select=gas_used,gas_wanted&order=height.desc&limit=${limit}`
+    )
+
+    if (!response.ok) {
+      throw new Error('Failed to fetch gas efficiency data')
+    }
+
+    const transactions = await response.json()
+    let totalUsed = 0
+    let totalLimit = 0
+
+    transactions.forEach((tx: any) => {
+      const gasUsed = parseInt(tx.gas_used) || 0
+      const gasWanted = parseInt(tx.gas_wanted) || 0
+      totalUsed += gasUsed
+      totalLimit += gasWanted
+    })
+
+    const avgEfficiency = totalLimit > 0 ? (totalUsed / totalLimit) * 100 : 0
+
+    return {
+      avgEfficiency,
+      totalUsed,
+      totalLimit,
+    }
+  }
 }
