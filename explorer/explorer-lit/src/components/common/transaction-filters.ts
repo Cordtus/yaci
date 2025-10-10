@@ -240,7 +240,7 @@ export class TransactionFilters extends LitElement {
 
     return html`
       <div class="filters-header">
-        <div class="filters-title">🔍 Filters & Sorting</div>
+        <div class="filters-title"> Filters & Sorting</div>
         <button class="clear-button" @click=${this._clearFilters}>
           Clear All
         </button>
@@ -255,8 +255,8 @@ export class TransactionFilters extends LitElement {
             @change=${(e: Event) => this._updateFilter('txType', (e.target as HTMLSelectElement).value)}
           >
             <option value="all">All Transactions</option>
-            <option value="cosmos">🌌 Cosmos Only</option>
-            <option value="evm">⚡ EVM Only</option>
+            <option value="cosmos"> Cosmos Only</option>
+            <option value="evm"> EVM Only</option>
           </select>
         </div>
 
@@ -268,8 +268,8 @@ export class TransactionFilters extends LitElement {
             @change=${(e: Event) => this._updateFilter('status', (e.target as HTMLSelectElement).value)}
           >
             <option value="all">All Status</option>
-            <option value="success">✅ Success Only</option>
-            <option value="failed">❌ Failed Only</option>
+            <option value="success"> Success Only</option>
+            <option value="failed"> Failed Only</option>
           </select>
         </div>
 

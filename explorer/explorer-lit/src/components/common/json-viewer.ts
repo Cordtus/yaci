@@ -96,7 +96,7 @@ export class JsonViewer extends LitElement {
     }
 
     .expandable::before {
-      content: '▶';
+      content: '';
       color: #94a3b8;
       margin-right: 0.5rem;
       transition: transform 0.2s;

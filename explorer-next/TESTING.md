@@ -28,7 +28,7 @@ The Yaci Block Explorer has been fully configured to use **ONLY real data** from
 
 ## How to Test Properly
 
-### ⚠️ IMPORTANT: Testing Requires a Real Browser
+###  IMPORTANT: Testing Requires a Real Browser
 
 The explorer is a **client-side application** that fetches data via JavaScript. Testing with `curl` or server-side tools will ONLY show loading skeletons because:
 

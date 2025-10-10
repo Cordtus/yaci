@@ -3,7 +3,7 @@
 # Check for outdated dependencies
 # Usage: ./scripts/check-deps.sh
 
-echo "🔍 Checking for outdated dependencies..."
+echo " Checking for outdated dependencies..."
 echo ""
 
 npm outdated || true

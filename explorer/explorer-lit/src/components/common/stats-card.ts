@@ -108,7 +108,7 @@ export class StatsCard extends LitElement {
         
         ${this.trend ? html`
           <div class="trend ${this.trendDirection}">
-            ${this.trendDirection === 'up' ? '↗' : this.trendDirection === 'down' ? '↘' : '→'} ${this.trend}
+            ${this.trendDirection === 'up' ? '' : this.trendDirection === 'down' ? '' : '→'} ${this.trend}
           </div>
         ` : ''}
       </div>

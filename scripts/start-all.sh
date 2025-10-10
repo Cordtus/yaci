@@ -3,7 +3,7 @@
 # Complete development environment startup script
 set -e
 
-echo "🚀 Starting complete Yaci development environment..."
+echo " Starting complete Yaci development environment..."
 
 # Colors for output
 RED='\033[0;31m'
@@ -21,7 +21,7 @@ check_service() {
         echo -e "${GREEN}✓${NC} $service_name is running"
         return 0
     else
-        echo -e "${YELLOW}⚠${NC} $service_name is not running"
+        echo -e "${YELLOW}${NC} $service_name is not running"
         return 1
     fi
 }
@@ -33,7 +33,7 @@ wait_for_service() {
     local max_attempts=${3:-30}
     local attempt=1
     
-    echo -e "${YELLOW}⏳${NC} Waiting for $service_name to be ready..."
+    echo -e "${YELLOW}${NC} Waiting for $service_name to be ready..."
     
     while [ $attempt -le $max_attempts ]; do
         if eval "$check_command" > /dev/null 2>&1; then
@@ -57,7 +57,7 @@ if ! docker info > /dev/null 2>&1; then
     exit 1
 fi
 
-echo -e "${BLUE}📋${NC} Checking current service status..."
+echo -e "${BLUE}${NC} Checking current service status..."
 
 # Check what's already running
 postgres_running=false
@@ -73,7 +73,7 @@ fi
 
 # Start only missing infrastructure services
 if [ "$postgres_running" = false ] || [ "$blockchain_running" = false ]; then
-    echo -e "${YELLOW}⚡${NC} Starting missing infrastructure services..."
+    echo -e "${YELLOW}${NC} Starting missing infrastructure services..."
     make docker-infra-up
     
     # Wait for services to be ready only if they weren't running
@@ -90,13 +90,13 @@ fi
 
 # Build yaci if needed
 if [ ! -f "./bin/yaci" ]; then
-    echo -e "${BLUE}🔨${NC} Building yaci..."
+    echo -e "${BLUE}${NC} Building yaci..."
     make build
 fi
 
 # Check if yaci indexer is running
 if ! check_service "Yaci Indexer" "pgrep -f 'yaci extract.*--live'"; then
-    echo -e "${YELLOW}⚡${NC} Starting yaci indexer..."
+    echo -e "${YELLOW}${NC} Starting yaci indexer..."
     
     # Start yaci in background with higher concurrency for faster extraction
     nohup ./bin/yaci extract postgres localhost:9090 \
@@ -110,34 +110,34 @@ if ! check_service "Yaci Indexer" "pgrep -f 'yaci extract.*--live'"; then
 fi
 
 # Setup explorer dependencies
-echo -e "${BLUE}📦${NC} Setting up explorer dependencies..."
+echo -e "${BLUE}${NC} Setting up explorer dependencies..."
 cd explorer
 if [ ! -d "node_modules" ]; then
-    echo -e "${YELLOW}⚡${NC} Installing explorer dependencies..."
+    echo -e "${YELLOW}${NC} Installing explorer dependencies..."
     npm install --legacy-peer-deps
 else
     echo -e "${GREEN}✓${NC} Explorer dependencies already installed"
 fi
 
 echo ""
-echo -e "${GREEN}🎉${NC} Complete development environment is ready!"
+echo -e "${GREEN}${NC} Complete development environment is ready!"
 echo ""
-echo -e "${BLUE}📍${NC} Services running:"
+echo -e "${BLUE}${NC} Services running:"
 echo "   - PostgreSQL: localhost:5432"
 echo "   - PostgREST API: localhost:3000"
 echo "   - Blockchain Node: localhost:9090 (gRPC), localhost:26657 (RPC)"
 echo "   - Yaci Indexer: running in background"
 echo ""
-echo -e "${BLUE}🌐${NC} Available Explorers:"
+echo -e "${BLUE}${NC} Available Explorers:"
 echo "   - Modern Lit.dev Explorer: cd explorer/explorer-lit && yarn dev (http://localhost:5174) [RECOMMENDED]"
 echo "   - Legacy Next.js Explorer: cd explorer && npm run dev (http://localhost:3001) [DEPRECATED]"
 echo ""
-echo -e "${BLUE}📊${NC} Useful commands:"
+echo -e "${BLUE}${NC} Useful commands:"
 echo "   - Monitor yaci logs: tail -f yaci.log"  
 echo "   - Stop services: make docker-infra-down"
 echo "   - View PostgreSQL data: docker exec -it infra-db-1 psql -U postgres"
 echo "   - API docs: http://localhost:3000"
 echo ""
-echo -e "${BLUE}🔧${NC} Quick start explorers:"
+echo -e "${BLUE}${NC} Quick start explorers:"
 echo "   - Lit.dev (recommended): ./scripts/start-lit.sh"
 echo "   - Next.js (legacy): ./scripts/start-nextjs.sh"

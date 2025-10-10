@@ -168,7 +168,7 @@ export class EVMTransactionDetails extends LitElement {
       <div class="evm-container">
         <div class="evm-header">
           <div class="evm-badge">
-            ⚡ EVM Transaction
+             EVM Transaction
           </div>
           <div class="evm-title">${typeInfo.name}</div>
         </div>

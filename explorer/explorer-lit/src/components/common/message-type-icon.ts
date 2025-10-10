@@ -43,31 +43,31 @@ export class MessageTypeIcon extends LitElement {
   private _getMessageInfo(type: string) {
     // Create new icon mappings inspired by common patterns
     if (type.includes('bank')) {
-      return { icon: '💰', label: 'Bank Transfer', class: 'bank' }
+      return { icon: '', label: 'Bank Transfer', class: 'bank' }
     }
     if (type.includes('staking') || type.includes('MsgDelegate')) {
-      return { icon: '🔒', label: 'Staking', class: 'staking' }
+      return { icon: '', label: 'Staking', class: 'staking' }
     }
     if (type.includes('gov') || type.includes('proposal')) {
-      return { icon: '📊', label: 'Governance', class: 'gov' }
+      return { icon: '', label: 'Governance', class: 'gov' }
     }
     if (type.includes('ibc')) {
-      return { icon: '🌉', label: 'IBC Transfer', class: 'ibc' }
+      return { icon: '', label: 'IBC Transfer', class: 'ibc' }
     }
     if (type.includes('ethermint') || type.includes('evm')) {
-      return { icon: '⚡', label: 'EVM Transaction', class: 'evm' }
+      return { icon: '', label: 'EVM Transaction', class: 'evm' }
     }
     if (type.includes('group')) {
-      return { icon: '👥', label: 'Group Action', class: 'group' }
+      return { icon: '', label: 'Group Action', class: 'group' }
     }
     if (type.includes('authz')) {
-      return { icon: '🔑', label: 'Authorization', class: 'authz' }
+      return { icon: '', label: 'Authorization', class: 'authz' }
     }
     if (type.includes('distribution')) {
-      return { icon: '💎', label: 'Rewards', class: 'distribution' }
+      return { icon: '', label: 'Rewards', class: 'distribution' }
     }
     
-    return { icon: '❓', label: 'Unknown', class: 'unknown' }
+    return { icon: '', label: 'Unknown', class: 'unknown' }
   }
 
   private _getShortName(type: string): string {

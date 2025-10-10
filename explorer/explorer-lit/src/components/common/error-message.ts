@@ -65,7 +65,7 @@ export class ErrorMessage extends LitElement {
   render() {
     return html`
       <div class="error-container">
-        <div class="error-icon">⚠️</div>
+        <div class="error-icon"></div>
         <div class="error-title">Error</div>
         <div class="error-message">${this.message}</div>
         ${this.showRetry ? html`

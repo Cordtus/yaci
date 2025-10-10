@@ -211,7 +211,7 @@ export class PageDashboard extends LitElement {
           <stats-card
             title="Latest Block"
             value="${this._stats?.latestBlock.toLocaleString() || '0'}"
-            icon="📦"
+            icon=""
             iconColor="#3b82f6"
             subtitle="Current blockchain height"
           ></stats-card>
@@ -219,7 +219,7 @@ export class PageDashboard extends LitElement {
           <stats-card
             title="Recent Transactions"
             value="${this._stats?.totalTransactions.toLocaleString() || '0'}"
-            icon="📄"
+            icon=""
             iconColor="#10b981"
             subtitle="Last 1000 transactions"
           ></stats-card>
@@ -227,7 +227,7 @@ export class PageDashboard extends LitElement {
           <stats-card
             title="Block Time"
             value="${this._stats?.avgBlockTime || 0}s"
-            icon="⚡"
+            icon=""
             iconColor="#8b5cf6"
             subtitle="Average time between blocks"
           ></stats-card>
@@ -235,7 +235,7 @@ export class PageDashboard extends LitElement {
           <stats-card
             title="Network"
             value="${this._stats?.chainId || 'Unknown'}"
-            icon="🔗"
+            icon=""
             iconColor="#f59e0b"
             subtitle="Chain identifier"
           ></stats-card>
@@ -281,7 +281,7 @@ export class PageDashboard extends LitElement {
                 >
                   <div>
                     <div class="item-main">
-                      ${tx.isEVMTransaction ? '⚡' : '🌌'} ${tx.id.substring(0, 12)}...
+                      ${tx.isEVMTransaction ? '' : ''} ${tx.id.substring(0, 12)}...
                     </div>
                     <div class="item-sub">
                       Height: ${tx.height.toLocaleString()} • ${tx.isEVMTransaction ? 'EVM' : 'Cosmos'}

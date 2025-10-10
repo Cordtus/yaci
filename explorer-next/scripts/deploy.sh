@@ -8,30 +8,30 @@ set -e
 
 ENVIRONMENT=${1:-production}
 
-echo "🚀 Starting deployment for $ENVIRONMENT environment..."
+echo " Starting deployment for $ENVIRONMENT environment..."
 
 # Clean everything
-echo "🧹 Cleaning all artifacts..."
+echo " Cleaning all artifacts..."
 rm -rf build .react-router node_modules/.vite node_modules
 
 # Fresh install
-echo "📦 Fresh npm install..."
+echo " Fresh npm install..."
 npm install
 
 # Run linting
-echo "🔍 Running linter..."
+echo " Running linter..."
 npm run lint
 
 # Type checking
-echo "📝 Type checking..."
+echo " Type checking..."
 npm run typecheck
 
 # Build
-echo "🏗️  Building application..."
+echo "  Building application..."
 npm run build
 
 echo ""
-echo "✅ Deployment build complete!"
+echo " Deployment build complete!"
 echo ""
 echo "Next steps:"
 echo "  1. Test the build: npm start"

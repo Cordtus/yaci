@@ -3,7 +3,7 @@
 # Development setup script for Yaci + Explorer
 set -e
 
-echo "🚀 Setting up Yaci development environment..."
+echo " Setting up Yaci development environment..."
 
 # Colors for output
 RED='\033[0;31m'
@@ -33,7 +33,7 @@ wait_for_service() {
     local max_attempts=${3:-30}
     local attempt=1
     
-    echo -e "${YELLOW}⏳${NC} Waiting for $service_name to be ready..."
+    echo -e "${YELLOW}${NC} Waiting for $service_name to be ready..."
     
     while [ $attempt -le $max_attempts ]; do
         if eval "$check_command" > /dev/null 2>&1; then
@@ -56,7 +56,7 @@ if ! docker info > /dev/null 2>&1; then
     exit 1
 fi
 
-echo -e "${BLUE}📋${NC} Checking service status..."
+echo -e "${BLUE}${NC} Checking service status..."
 
 # Check infrastructure services
 postgres_running=false
@@ -72,7 +72,7 @@ fi
 
 # Start missing infrastructure services
 if [ "$postgres_running" = false ] || [ "$blockchain_running" = false ]; then
-    echo -e "${YELLOW}⚡${NC} Starting infrastructure services..."
+    echo -e "${YELLOW}${NC} Starting infrastructure services..."
     make docker-infra-up
     
     # Wait for PostgreSQL to be ready
@@ -86,11 +86,11 @@ fi
 if pgrep -f "yaci extract.*--live" > /dev/null; then
     echo -e "${GREEN}✓${NC} Yaci indexer is running in live mode"
 else
-    echo -e "${YELLOW}⚡${NC} Starting yaci indexer..."
+    echo -e "${YELLOW}${NC} Starting yaci indexer..."
     
     # Build yaci if not exists
     if [ ! -f "./bin/yaci" ]; then
-        echo -e "${BLUE}🔨${NC} Building yaci..."
+        echo -e "${BLUE}${NC} Building yaci..."
         make build
     fi
     
@@ -106,27 +106,27 @@ else
 fi
 
 # Check if database schema exists
-echo -e "${BLUE}🗃️${NC} Checking database schema..."
+echo -e "${BLUE}${NC} Checking database schema..."
 if docker exec infra-db-1 psql -U postgres -d postgres -c "\dt api.*" > /dev/null 2>&1; then
     echo -e "${GREEN}✓${NC} Yaci database schema found"
 else
-    echo -e "${YELLOW}⏳${NC} Waiting for yaci to create database schema..."
+    echo -e "${YELLOW}${NC} Waiting for yaci to create database schema..."
     sleep 10
     if docker exec infra-db-1 psql -U postgres -d postgres -c "\dt api.*" > /dev/null 2>&1; then
         echo -e "${GREEN}✓${NC} Yaci database schema created"
     else
-        echo -e "${YELLOW}⚠️${NC} Database schema not yet created. Yaci may still be initializing."
+        echo -e "${YELLOW}${NC} Database schema not yet created. Yaci may still be initializing."
     fi
 fi
 
-echo -e "${GREEN}🎉${NC} Development environment is ready!"
-echo -e "${BLUE}📍${NC} Services running:"
+echo -e "${GREEN}${NC} Development environment is ready!"
+echo -e "${BLUE}${NC} Services running:"
 echo "   - PostgreSQL: localhost:5432"
 echo "   - Blockchain Node: localhost:9090"
 echo "   - PostgREST API: localhost:3000"
 echo "   - Yaci Indexer: running in background"
 echo ""
-echo -e "${BLUE}🌐${NC} To start the explorer:"
+echo -e "${BLUE}${NC} To start the explorer:"
 echo "   cd explorer && npm install && npm run dev"
 echo ""
-echo -e "${BLUE}📊${NC} Monitor yaci logs: tail -f yaci.log"
+echo -e "${BLUE}${NC} Monitor yaci logs: tail -f yaci.log"

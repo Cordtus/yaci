@@ -5,17 +5,17 @@
 
 set -e
 
-echo "🧹 Cleaning build artifacts and cache..."
+echo " Cleaning build artifacts and cache..."
 rm -rf build .react-router node_modules/.vite
 
-echo "📦 Installing dependencies..."
+echo " Installing dependencies..."
 npm install
 
-echo "🔍 Running type check..."
+echo " Running type check..."
 npm run typecheck
 
-echo "🏗️  Building application..."
+echo "  Building application..."
 npm run build
 
-echo "✅ Clean rebuild complete!"
+echo " Clean rebuild complete!"
 echo "Run 'npm start' to serve the built application"

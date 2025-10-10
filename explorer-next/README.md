@@ -4,13 +4,13 @@ A modern, performant block explorer for Cosmos SDK chains with native EVM suppor
 
 ## Features
 
-- 🚀 **High Performance**: Direct PostgreSQL integration for optimal query performance
-- 🔄 **Real-time Updates**: Live blockchain data synchronization
-- 🌐 **Dual Chain Support**: Native support for both Cosmos and EVM transactions
-- 🎨 **Modern UI**: Clean, responsive design with dark mode support
-- 🔍 **Smart Search**: Unified search for blocks, transactions, and addresses
-- 📊 **Rich Analytics**: Chain statistics, transaction history, and performance metrics
-- 🔧 **Developer Friendly**: TypeScript, modern tooling, and comprehensive documentation
+-  **High Performance**: Direct PostgreSQL integration for optimal query performance
+-  **Real-time Updates**: Live blockchain data synchronization
+-  **Dual Chain Support**: Native support for both Cosmos and EVM transactions
+-  **Modern UI**: Clean, responsive design with dark mode support
+-  **Smart Search**: Unified search for blocks, transactions, and addresses
+-  **Rich Analytics**: Chain statistics, transaction history, and performance metrics
+-  **Developer Friendly**: TypeScript, modern tooling, and comprehensive documentation
 
 ## Tech Stack
 

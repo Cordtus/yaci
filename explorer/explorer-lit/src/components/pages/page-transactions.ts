@@ -296,7 +296,7 @@ export class PageTransactions extends LitElement {
                       </span>
                     ` : ''}
                   ` : html`
-                    <span class="tx-type-badge tx-type-cosmos">🌌 Cosmos</span>
+                    <span class="tx-type-badge tx-type-cosmos"> Cosmos</span>
                   `}
                 </td>
                 <td class="table-cell">

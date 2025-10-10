@@ -1,6 +1,6 @@
 #!/bin/bash
 
-echo "🛑 Stopping all Yaci services..."
+echo " Stopping all Yaci services..."
 
 # Stop background processes
 pkill -f "yaci extract.*--live" 2>/dev/null || true
@@ -11,4 +11,4 @@ pkill -f "vite.*5174" 2>/dev/null || true
 docker stop postgrest-persistent 2>/dev/null || true
 docker-compose down
 
-echo "✅ All services stopped."
+echo " All services stopped."
