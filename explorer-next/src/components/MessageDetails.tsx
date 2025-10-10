@@ -48,6 +48,10 @@ interface MessageMetadata {
 interface MessageDetailsProps {
   type: string
   metadata?: MessageMetadata
+  events?: Array<{
+    event_type: string
+    attributes: Array<{ key: string; value: string }>
+  }>
 }
 
 function formatDenom(amount: string, denom: string, getDenomDisplay: (d: string) => string): string {
@@ -68,6 +72,36 @@ function formatDenom(amount: string, denom: string, getDenomDisplay: (d: string)
   }
 
   return `${formatNumber(num)} ${getDenomDisplay(denom)}`
+}
+
+function parseMultiDenomAmount(amountStr: string): Array<{ amount: string; denom: string }> {
+  if (!amountStr) return []
+
+  // Format: "14ibc/HASH,167403198ujuno" or "1000uatom"
+  const amounts: Array<{ amount: string; denom: string }> = []
+  const parts = amountStr.split(',')
+
+  for (const part of parts) {
+    const trimmed = part.trim()
+    // Match number followed by denom (including ibc/ prefix)
+    const match = trimmed.match(/^(\d+)(.+)$/)
+    if (match) {
+      amounts.push({
+        amount: match[1],
+        denom: match[2]
+      })
+    }
+  }
+
+  return amounts
+}
+
+function getEventAttribute(events: Array<{ event_type: string; attributes: Array<{ key: string; value: string }> }>, eventType: string, key: string): string | null {
+  const event = events?.find(e => e.event_type === eventType)
+  if (!event) return null
+
+  const attr = event.attributes.find(a => a.key === key)
+  return attr?.value || null
 }
 
 function DetailRow({ label, value, copyable, icon: Icon }: {
@@ -101,13 +135,18 @@ function DetailRow({ label, value, copyable, icon: Icon }: {
   )
 }
 
-export function MessageDetails({ type, metadata }: MessageDetailsProps) {
+export function MessageDetails({ type, metadata, events }: MessageDetailsProps) {
   const { getDenomDisplay } = useDenom()
 
   if (!metadata) return null
 
   // Bank Send
   if (type === '/cosmos.bank.v1beta1.MsgSend') {
+    // Try to extract actual transferred amount from transfer event (more accurate than metadata)
+    const transferAmountStr = getEventAttribute(events || [], 'transfer', 'amount')
+    const transferAmounts = transferAmountStr ? parseMultiDenomAmount(transferAmountStr) : []
+    const displayAmounts = transferAmounts.length > 0 ? transferAmounts : metadata.amount || []
+
     return (
       <div className="space-y-2">
         <div className="flex items-center gap-2 mb-3">
@@ -123,10 +162,10 @@ export function MessageDetails({ type, metadata }: MessageDetailsProps) {
         {metadata.toAddress && (
           <DetailRow label="To" value={metadata.toAddress} copyable icon={Users} />
         )}
-        {metadata.amount && metadata.amount.length > 0 && (
+        {displayAmounts.length > 0 && (
           <div className="p-3 bg-primary/10 rounded-lg border border-primary/20">
             <label className="text-xs font-medium text-primary uppercase tracking-wider block mb-2">Amount</label>
-            {metadata.amount.map((amt, idx) => (
+            {displayAmounts.map((amt, idx) => (
               <div key={idx} className="text-lg font-bold text-primary">
                 {formatDenom(amt.amount, amt.denom, getDenomDisplay)}
               </div>
@@ -229,6 +268,10 @@ export function MessageDetails({ type, metadata }: MessageDetailsProps) {
 
   // Distribution - Withdraw Rewards
   if (type === '/cosmos.distribution.v1beta1.MsgWithdrawDelegatorReward') {
+    // Extract reward amounts from withdraw_rewards event
+    const rewardAmountStr = getEventAttribute(events || [], 'withdraw_rewards', 'amount')
+    const rewardAmounts = rewardAmountStr ? parseMultiDenomAmount(rewardAmountStr) : []
+
     return (
       <div className="space-y-2">
         <div className="flex items-center gap-2 mb-3">
@@ -241,12 +284,26 @@ export function MessageDetails({ type, metadata }: MessageDetailsProps) {
         {metadata.validatorAddress && (
           <DetailRow label="Validator" value={metadata.validatorAddress} copyable />
         )}
+        {rewardAmounts.length > 0 && (
+          <div className="p-3 bg-purple-500/10 rounded-lg border border-purple-500/20">
+            <label className="text-xs font-medium text-purple-600 uppercase tracking-wider block mb-2">Rewards Claimed</label>
+            {rewardAmounts.map((amt, idx) => (
+              <div key={idx} className="text-lg font-bold text-purple-600">
+                {formatDenom(amt.amount, amt.denom, getDenomDisplay)}
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     )
   }
 
   // Distribution - Withdraw Commission
   if (type === '/cosmos.distribution.v1beta1.MsgWithdrawValidatorCommission') {
+    // Extract commission amounts from withdraw_commission event
+    const commissionAmountStr = getEventAttribute(events || [], 'withdraw_commission', 'amount')
+    const commissionAmounts = commissionAmountStr ? parseMultiDenomAmount(commissionAmountStr) : []
+
     return (
       <div className="space-y-2">
         <div className="flex items-center gap-2 mb-3">
@@ -255,6 +312,16 @@ export function MessageDetails({ type, metadata }: MessageDetailsProps) {
         </div>
         {metadata.validatorAddress && (
           <DetailRow label="Validator" value={metadata.validatorAddress} copyable />
+        )}
+        {commissionAmounts.length > 0 && (
+          <div className="p-3 bg-purple-500/10 rounded-lg border border-purple-500/20">
+            <label className="text-xs font-medium text-purple-600 uppercase tracking-wider block mb-2">Commission Claimed</label>
+            {commissionAmounts.map((amt, idx) => (
+              <div key={idx} className="text-lg font-bold text-purple-600">
+                {formatDenom(amt.amount, amt.denom, getDenomDisplay)}
+              </div>
+            ))}
+          </div>
         )}
       </div>
     )
@@ -289,7 +356,14 @@ export function MessageDetails({ type, metadata }: MessageDetailsProps) {
 
   // IBC Transfer
   if (type === '/ibc.applications.transfer.v1.MsgTransfer') {
-    const token = metadata.token
+    // Try to get actual sent amount from send_packet or transfer event
+    const sendPacketAmount = getEventAttribute(events || [], 'send_packet', 'packet_data_hex')
+    const transferAmountStr = getEventAttribute(events || [], 'transfer', 'amount')
+    const transferAmounts = transferAmountStr ? parseMultiDenomAmount(transferAmountStr) : []
+
+    // Fallback to metadata token if event data not available
+    const displayAmounts = transferAmounts.length > 0 ? transferAmounts : (metadata.token ? [metadata.token] : [])
+
     return (
       <div className="space-y-2">
         <div className="flex items-center gap-2 mb-3">
@@ -308,12 +382,14 @@ export function MessageDetails({ type, metadata }: MessageDetailsProps) {
         {metadata.sourceChannel && (
           <DetailRow label="Channel" value={`${metadata.sourcePort}/${metadata.sourceChannel}`} />
         )}
-        {token && (
+        {displayAmounts.length > 0 && (
           <div className="p-3 bg-cyan-500/10 rounded-lg border border-cyan-500/20">
             <label className="text-xs font-medium text-cyan-600 uppercase tracking-wider block mb-2">Amount</label>
-            <div className="text-lg font-bold text-cyan-600">
-              {formatDenom(token.amount, token.denom, getDenomDisplay)}
-            </div>
+            {displayAmounts.map((amt, idx) => (
+              <div key={idx} className="text-lg font-bold text-cyan-600">
+                {formatDenom(amt.amount, amt.denom, getDenomDisplay)}
+              </div>
+            ))}
           </div>
         )}
       </div>
@@ -332,6 +408,13 @@ export function MessageDetails({ type, metadata }: MessageDetailsProps) {
       }
     }
 
+    // Extract any funds sent with contract execution
+    const transferAmountStr = getEventAttribute(events || [], 'transfer', 'amount')
+    const transferAmounts = transferAmountStr ? parseMultiDenomAmount(transferAmountStr) : []
+
+    // Extract wasm events for contract-specific actions
+    const wasmEvents = events?.filter(e => e.event_type === 'wasm') || []
+
     return (
       <div className="space-y-2">
         <div className="flex items-center gap-2 mb-3">
@@ -341,12 +424,40 @@ export function MessageDetails({ type, metadata }: MessageDetailsProps) {
         {metadata.contract && (
           <DetailRow label="Contract" value={metadata.contract} copyable />
         )}
+        {metadata.sender && (
+          <DetailRow label="Sender" value={metadata.sender} copyable icon={Users} />
+        )}
+        {transferAmounts.length > 0 && (
+          <div className="p-3 bg-teal-500/10 rounded-lg border border-teal-500/20">
+            <label className="text-xs font-medium text-teal-600 uppercase tracking-wider block mb-2">Funds Sent</label>
+            {transferAmounts.map((amt, idx) => (
+              <div key={idx} className="text-lg font-bold text-teal-600">
+                {formatDenom(amt.amount, amt.denom, getDenomDisplay)}
+              </div>
+            ))}
+          </div>
+        )}
         {decodedMsg && (
           <div className="p-3 bg-muted/30 rounded-lg">
             <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider block mb-2">Contract Message</label>
             <pre className="text-xs font-mono overflow-auto max-h-32 mt-1">
               {JSON.stringify(decodedMsg, null, 2)}
             </pre>
+          </div>
+        )}
+        {wasmEvents.length > 0 && (
+          <div className="p-3 bg-muted/30 rounded-lg">
+            <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider block mb-2">Contract Events</label>
+            {wasmEvents.map((event, idx) => (
+              <div key={idx} className="text-xs font-mono mb-2">
+                {event.attributes.map((attr, attrIdx) => (
+                  <div key={attrIdx} className="flex gap-2">
+                    <span className="text-muted-foreground">{attr.key}:</span>
+                    <span>{attr.value}</span>
+                  </div>
+                ))}
+              </div>
+            ))}
           </div>
         )}
       </div>

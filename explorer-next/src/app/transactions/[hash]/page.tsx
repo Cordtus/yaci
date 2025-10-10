@@ -274,7 +274,11 @@ export default function TransactionDetailPage({ params }: TransactionDetailPageP
                           <CollapsibleContent>
                             <div className="px-4 pb-4 space-y-4">
                               {/* Message-Specific Details */}
-                              <MessageDetails type={message.type} metadata={message.metadata} />
+                              <MessageDetails
+                                type={message.type}
+                                metadata={message.metadata}
+                                events={groupedEvents}
+                              />
 
                               {/* Events nested under message */}
                               {groupedEvents.length > 0 && (
