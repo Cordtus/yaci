@@ -1,59 +1,33 @@
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Activity, DollarSign, Zap } from 'lucide-react'
-import { NetworkHealthCard } from '@/components/analytics/NetworkHealthCard'
+import { Activity } from 'lucide-react'
+import { NetworkMetricsCard } from '@/components/analytics/NetworkMetricsCard'
 import { BlockIntervalChart } from '@/components/analytics/BlockIntervalChart'
-import { FeeRevenueChart } from '@/components/analytics/FeeRevenueChart'
-import { GasEfficiencyChart } from '@/components/analytics/GasEfficiencyChart'
+import { TransactionVolumeChart } from '@/components/analytics/TransactionVolumeChart'
+import { TopMessageTypesCard } from '@/components/analytics/TopMessageTypesCard'
 
 export default function AnalyticsPage() {
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center gap-3">
+        <Activity className="h-8 w-8 text-primary" />
         <div>
-          <h1 className="text-3xl font-bold">Analytics</h1>
+          <h1 className="text-3xl font-bold">Network Metrics</h1>
           <p className="text-muted-foreground">
-            Comprehensive insights combining database and Prometheus metrics
+            Real-time blockchain statistics and performance metrics
           </p>
         </div>
       </div>
 
-      <Tabs defaultValue="network" className="space-y-6">
-        <TabsList className="grid w-full max-w-md grid-cols-3">
-          <TabsTrigger value="network" className="flex items-center gap-2">
-            <Activity className="h-4 w-4" />
-            Network Health
-          </TabsTrigger>
-          <TabsTrigger value="economics" className="flex items-center gap-2">
-            <DollarSign className="h-4 w-4" />
-            Economics
-          </TabsTrigger>
-          <TabsTrigger value="performance" className="flex items-center gap-2">
-            <Zap className="h-4 w-4" />
-            Performance
-          </TabsTrigger>
-        </TabsList>
+      {/* Primary metrics card */}
+      <NetworkMetricsCard />
 
-        {/* Network Health Tab */}
-        <TabsContent value="network" className="space-y-6">
-          <NetworkHealthCard />
-          <BlockIntervalChart />
-        </TabsContent>
+      {/* Charts grid */}
+      <div className="grid gap-6 lg:grid-cols-2">
+        <BlockIntervalChart />
+        <TransactionVolumeChart />
+      </div>
 
-        {/* Transaction Economics Tab */}
-        <TabsContent value="economics" className="space-y-6">
-          <FeeRevenueChart days={7} />
-          <GasEfficiencyChart />
-        </TabsContent>
-
-        {/* Performance Tab */}
-        <TabsContent value="performance" className="space-y-6">
-          <div className="grid gap-6 lg:grid-cols-2">
-            <BlockIntervalChart />
-            <GasEfficiencyChart />
-          </div>
-          <NetworkHealthCard />
-        </TabsContent>
-      </Tabs>
+      {/* Additional metrics */}
+      <TopMessageTypesCard />
     </div>
   )
 }

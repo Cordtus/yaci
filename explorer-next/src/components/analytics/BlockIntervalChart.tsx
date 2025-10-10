@@ -12,7 +12,10 @@ interface BlockTimeData {
 }
 
 async function getBlockIntervalData(limit = 100): Promise<BlockTimeData[]> {
-  const baseUrl = process.env.NEXT_PUBLIC_POSTGREST_URL || 'http://localhost:3010'
+  const baseUrl = process.env.NEXT_PUBLIC_POSTGREST_URL
+  if (!baseUrl) {
+    throw new Error('NEXT_PUBLIC_POSTGREST_URL environment variable is not set')
+  }
   const response = await fetch(
     `${baseUrl}/blocks_raw?order=id.desc&limit=${limit}`
   )

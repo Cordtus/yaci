@@ -13,7 +13,10 @@ export class YaciAPIClient {
   private cache = new Map<string, { data: any; timestamp: number }>()
   private cacheTimeout = 10000 // 10 seconds
 
-  constructor(baseUrl = process.env.NEXT_PUBLIC_POSTGREST_URL || 'http://localhost:3010') {
+  constructor(baseUrl = process.env.NEXT_PUBLIC_POSTGREST_URL) {
+    if (!baseUrl) {
+      throw new Error('NEXT_PUBLIC_POSTGREST_URL environment variable is not set')
+    }
     this.baseUrl = baseUrl
   }
 
@@ -501,113 +504,6 @@ export class YaciAPIClient {
     return revenueByDenom
   }
 
-  async getFeeRevenueOverTime(
-    days = 7
-  ): Promise<Array<{ date: string; revenue: Record<string, number> }>> {
-    const startDate = new Date()
-    startDate.setDate(startDate.getDate() - days)
-    const startDateStr = startDate.toISOString()
-
-    const response = await fetch(
-      `${this.baseUrl}/transactions_main?select=fee,timestamp&timestamp=gte.${startDateStr}&order=timestamp.asc`
-    )
-
-    if (!response.ok) {
-      throw new Error('Failed to fetch fee revenue over time')
-    }
-
-    const transactions = await response.json()
-    const revenueByDate = new Map<string, Record<string, number>>()
-
-    transactions.forEach((tx: any) => {
-      const date = new Date(tx.timestamp).toISOString().split('T')[0]
-      if (!revenueByDate.has(date)) {
-        revenueByDate.set(date, {})
-      }
-
-      const dateRevenue = revenueByDate.get(date)!
-      if (tx.fee?.amount && Array.isArray(tx.fee.amount)) {
-        tx.fee.amount.forEach((coin: { denom: string; amount: string }) => {
-          const amount = parseFloat(coin.amount) || 0
-          dateRevenue[coin.denom] = (dateRevenue[coin.denom] || 0) + amount
-        })
-      }
-    })
-
-    return Array.from(revenueByDate.entries()).map(([date, revenue]) => ({
-      date,
-      revenue,
-    }))
-  }
-
-  async getGasEfficiency(
-    limit = 1000
-  ): Promise<{ avgEfficiency: number; totalUsed: number; totalLimit: number }> {
-    const response = await fetch(
-      `${this.baseUrl}/transactions_main?select=fee&error=is.null&order=height.desc&limit=${limit}`
-    )
-
-    if (!response.ok) {
-      throw new Error('Failed to fetch gas efficiency data')
-    }
-
-    const transactions = await response.json()
-    let totalLimit = 0
-    let count = 0
-
-    transactions.forEach((tx: any) => {
-      if (tx.fee?.gasLimit) {
-        totalLimit += parseInt(tx.fee.gasLimit) || 0
-        count++
-      }
-    })
-
-    // We don't have actual gas_used, so we'll estimate based on gas limit
-    // Typical efficiency is around 70-80% in Cosmos chains
-    const estimatedUsed = totalLimit * 0.75
-    const avgEfficiency = 75 // Estimated average efficiency
-
-    return {
-      avgEfficiency,
-      totalUsed: estimatedUsed,
-      totalLimit,
-    }
-  }
-
-  async getGasUsageDistribution(
-    limit = 1000
-  ): Promise<Array<{ range: string; count: number }>> {
-    const response = await fetch(
-      `${this.baseUrl}/transactions_main?select=fee&order=height.desc&limit=${limit}`
-    )
-
-    if (!response.ok) {
-      throw new Error('Failed to fetch gas usage data')
-    }
-
-    const transactions = await response.json()
-    const buckets = {
-      '0-50k': 0,
-      '50k-100k': 0,
-      '100k-250k': 0,
-      '250k-500k': 0,
-      '500k-1M': 0,
-      '1M+': 0,
-    }
-
-    transactions.forEach((tx: any) => {
-      const gasLimit = tx.fee?.gasLimit ? parseInt(tx.fee.gasLimit) : 0
-      if (gasLimit < 50000) buckets['0-50k']++
-      else if (gasLimit < 100000) buckets['50k-100k']++
-      else if (gasLimit < 250000) buckets['100k-250k']++
-      else if (gasLimit < 500000) buckets['250k-500k']++
-      else if (gasLimit < 1000000) buckets['500k-1M']++
-      else buckets['1M+']++
-    })
-
-    return Object.entries(buckets).map(([range, count]) => ({ range, count }))
-  }
-
   async getAverageGasPrice(): Promise<{ denom: string; avgPrice: number }[]> {
     const response = await fetch(
       `${this.baseUrl}/transactions_main?select=fee&order=height.desc&limit=1000`
@@ -910,5 +806,47 @@ export class YaciAPIClient {
       totalUsed,
       totalLimit,
     }
+  }
+
+  /**
+   * Get fee revenue over time
+   */
+  async getFeeRevenueOverTime(days: number = 7): Promise<
+    Array<{ date: string; revenue: Record<string, number> }>
+  > {
+    const now = new Date()
+    const daysAgo = new Date(now.getTime() - days * 24 * 60 * 60 * 1000)
+    const startTime = daysAgo.toISOString()
+
+    const response = await fetch(
+      `${this.baseUrl}/transactions_main?select=time,fee&time=gte.${startTime}&order=time.desc`
+    )
+
+    if (!response.ok) {
+      throw new Error('Failed to fetch fee revenue data')
+    }
+
+    const transactions = await response.json()
+    const dailyRevenue: Record<string, Record<string, number>> = {}
+
+    transactions.forEach((tx: any) => {
+      const date = tx.time ? new Date(tx.time).toLocaleDateString() : 'Unknown'
+      if (!dailyRevenue[date]) {
+        dailyRevenue[date] = {}
+      }
+
+      if (tx.fee?.amount && Array.isArray(tx.fee.amount)) {
+        tx.fee.amount.forEach((coin: { denom: string; amount: string }) => {
+          const amount = parseFloat(coin.amount) || 0
+          const denom = coin.denom || 'unknown'
+          dailyRevenue[date][denom] = (dailyRevenue[date][denom] || 0) + amount
+        })
+      }
+    })
+
+    // Convert to array and sort by date
+    return Object.entries(dailyRevenue)
+      .map(([date, revenue]) => ({ date, revenue }))
+      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
   }
 }

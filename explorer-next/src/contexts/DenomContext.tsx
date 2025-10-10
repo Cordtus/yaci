@@ -25,7 +25,10 @@ export function DenomProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const loadDenomMetadata = async () => {
       try {
-        const postgrestUrl = process.env.NEXT_PUBLIC_POSTGREST_URL || 'http://localhost:3010'
+        const postgrestUrl = process.env.NEXT_PUBLIC_POSTGREST_URL
+        if (!postgrestUrl) {
+          throw new Error('NEXT_PUBLIC_POSTGREST_URL environment variable is not set')
+        }
         const response = await fetch(`${postgrestUrl}/denom_metadata?select=denom,symbol,ibc_hash`)
 
         if (!response.ok) {

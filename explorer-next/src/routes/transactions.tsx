@@ -1,23 +1,24 @@
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Link } from 'react-router'
-import { Activity, Filter, Check, X, Calendar, Layers } from 'lucide-react'
+import { Activity, Filter, Check, X } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
+import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { YaciAPIClient } from '@/lib/api/client'
 import { formatHash, formatTimeAgo, getTransactionStatus, getMessageTypeLabel, isEVMTransaction } from '@/lib/utils'
 import { Skeleton } from '@/components/ui/skeleton'
+import { Separator } from '@/components/ui/separator'
 
 const api = new YaciAPIClient()
 
-// Common message types for the filter dropdown
+// Common message types
 const MESSAGE_TYPES = [
-  { value: 'all', label: 'All Types' },
   { value: '/cosmos.bank.v1beta1.MsgSend', label: 'Bank Send' },
   { value: '/cosmos.staking.v1beta1.MsgDelegate', label: 'Delegate' },
   { value: '/cosmos.staking.v1beta1.MsgUndelegate', label: 'Undelegate' },
@@ -31,22 +32,28 @@ const MESSAGE_TYPES = [
 
 export default function TransactionsPage() {
   const [page, setPage] = useState(0)
-  const [statusFilter, setStatusFilter] = useState<'all' | 'success' | 'failed'>('all')
-  const [messageTypeFilter, setMessageTypeFilter] = useState<string>('all')
+  const [filterOpen, setFilterOpen] = useState(false)
+
+  // Filter state
+  const [statusFilters, setStatusFilters] = useState<Set<string>>(new Set())
+  const [messageTypeFilters, setMessageTypeFilters] = useState<Set<string>>(new Set())
   const [blockFilter, setBlockFilter] = useState('')
   const [blockRangeMin, setBlockRangeMin] = useState('')
   const [blockRangeMax, setBlockRangeMax] = useState('')
   const [timeRangeMin, setTimeRangeMin] = useState('')
   const [timeRangeMax, setTimeRangeMax] = useState('')
-  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false)
+
   const limit = 20
 
   // Build filters object
   const buildFilters = () => {
     const filters: any = {}
 
-    if (statusFilter !== 'all') {
-      filters.status = statusFilter
+    // Status filter
+    if (statusFilters.has('success') && !statusFilters.has('failed')) {
+      filters.status = 'success'
+    } else if (statusFilters.has('failed') && !statusFilters.has('success')) {
+      filters.status = 'failed'
     }
 
     // Block filters
@@ -78,21 +85,22 @@ export default function TransactionsPage() {
       filters.timestamp_max = new Date(timeRangeMax).toISOString()
     }
 
-    if (messageTypeFilter !== 'all') {
-      filters.message_type = messageTypeFilter
+    // Message type filter - only use if exactly one is selected
+    if (messageTypeFilters.size === 1) {
+      filters.message_type = Array.from(messageTypeFilters)[0]
     }
 
     return filters
   }
 
   const { data, isLoading, error } = useQuery({
-    queryKey: ['transactions', page, statusFilter, messageTypeFilter, blockFilter, blockRangeMin, blockRangeMax, timeRangeMin, timeRangeMax],
+    queryKey: ['transactions', page, Array.from(statusFilters), Array.from(messageTypeFilters), blockFilter, blockRangeMin, blockRangeMax, timeRangeMin, timeRangeMax],
     queryFn: () => api.getTransactions(limit, page * limit, buildFilters()),
   })
 
   const handleClearFilters = () => {
-    setStatusFilter('all')
-    setMessageTypeFilter('all')
+    setStatusFilters(new Set())
+    setMessageTypeFilters(new Set())
     setBlockFilter('')
     setBlockRangeMin('')
     setBlockRangeMax('')
@@ -101,7 +109,28 @@ export default function TransactionsPage() {
     setPage(0)
   }
 
-  const hasActiveFilters = statusFilter !== 'all' || messageTypeFilter !== 'all' || blockFilter || blockRangeMin || blockRangeMax || timeRangeMin || timeRangeMax
+  const handleStatusToggle = (status: string) => {
+    const newFilters = new Set(statusFilters)
+    if (newFilters.has(status)) {
+      newFilters.delete(status)
+    } else {
+      newFilters.add(status)
+    }
+    setStatusFilters(newFilters)
+  }
+
+  const handleMessageTypeToggle = (type: string) => {
+    const newFilters = new Set(messageTypeFilters)
+    if (newFilters.has(type)) {
+      newFilters.delete(type)
+    } else {
+      newFilters.add(type)
+    }
+    setMessageTypeFilters(newFilters)
+  }
+
+  const hasActiveFilters = statusFilters.size > 0 || messageTypeFilters.size > 0 || blockFilter || blockRangeMin || blockRangeMax || timeRangeMin || timeRangeMax
+  const activeFilterCount = statusFilters.size + messageTypeFilters.size + (blockFilter ? 1 : 0) + (blockRangeMin || blockRangeMax ? 1 : 0) + (timeRangeMin || timeRangeMax ? 1 : 0)
 
   return (
     <div className="space-y-6">
@@ -112,132 +141,178 @@ export default function TransactionsPage() {
             Browse and filter transactions on the blockchain
           </p>
         </div>
-      </div>
+        <Dialog open={filterOpen} onOpenChange={setFilterOpen}>
+          <DialogTrigger asChild>
+            <Button variant="outline" className="gap-2">
+              <Filter className="h-4 w-4" />
+              Filters
+              {activeFilterCount > 0 && (
+                <Badge variant="secondary" className="ml-1">
+                  {activeFilterCount}
+                </Badge>
+              )}
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Filter Transactions</DialogTitle>
+              <DialogDescription>
+                Select filter criteria to narrow down the transaction list
+              </DialogDescription>
+            </DialogHeader>
 
-      {/* Filters Section */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-lg">Filters</CardTitle>
-            {hasActiveFilters && (
-              <Button variant="ghost" size="sm" onClick={handleClearFilters}>
+            <div className="space-y-6 py-4">
+              {/* Status Filter */}
+              <div className="space-y-3">
+                <Label className="text-base font-semibold">Status</Label>
+                <div className="space-y-2">
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="status-success"
+                      checked={statusFilters.has('success')}
+                      onCheckedChange={() => handleStatusToggle('success')}
+                    />
+                    <label
+                      htmlFor="status-success"
+                      className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                    >
+                      Success
+                    </label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="status-failed"
+                      checked={statusFilters.has('failed')}
+                      onCheckedChange={() => handleStatusToggle('failed')}
+                    />
+                    <label
+                      htmlFor="status-failed"
+                      className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                    >
+                      Failed
+                    </label>
+                  </div>
+                </div>
+              </div>
+
+              <Separator />
+
+              {/* Message Type Filter */}
+              <div className="space-y-3">
+                <Label className="text-base font-semibold">Message Type</Label>
+                <div className="space-y-2 max-h-60 overflow-y-auto">
+                  {MESSAGE_TYPES.map((type) => (
+                    <div key={type.value} className="flex items-center space-x-2">
+                      <Checkbox
+                        id={`type-${type.value}`}
+                        checked={messageTypeFilters.has(type.value)}
+                        onCheckedChange={() => handleMessageTypeToggle(type.value)}
+                      />
+                      <label
+                        htmlFor={`type-${type.value}`}
+                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                      >
+                        {type.label}
+                      </label>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <Separator />
+
+              {/* Block Height Filter */}
+              <div className="space-y-3">
+                <Label className="text-base font-semibold">Block Height</Label>
+                <div className="space-y-3">
+                  <div>
+                    <Label htmlFor="block-single" className="text-sm">Single Block</Label>
+                    <Input
+                      id="block-single"
+                      type="number"
+                      placeholder="Enter block number"
+                      value={blockFilter}
+                      onChange={(e) => {
+                        setBlockFilter(e.target.value)
+                        if (e.target.value) {
+                          setBlockRangeMin('')
+                          setBlockRangeMax('')
+                        }
+                      }}
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <Label htmlFor="block-min" className="text-sm">Min Block</Label>
+                      <Input
+                        id="block-min"
+                        type="number"
+                        placeholder="Min"
+                        value={blockRangeMin}
+                        onChange={(e) => {
+                          setBlockRangeMin(e.target.value)
+                          if (e.target.value) setBlockFilter('')
+                        }}
+                        disabled={!!blockFilter}
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="block-max" className="text-sm">Max Block</Label>
+                      <Input
+                        id="block-max"
+                        type="number"
+                        placeholder="Max"
+                        value={blockRangeMax}
+                        onChange={(e) => {
+                          setBlockRangeMax(e.target.value)
+                          if (e.target.value) setBlockFilter('')
+                        }}
+                        disabled={!!blockFilter}
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <Separator />
+
+              {/* Time Range Filter */}
+              <div className="space-y-3">
+                <Label className="text-base font-semibold">Time Range</Label>
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <Label htmlFor="time-min" className="text-sm">From</Label>
+                    <Input
+                      id="time-min"
+                      type="datetime-local"
+                      value={timeRangeMin}
+                      onChange={(e) => setTimeRangeMin(e.target.value)}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="time-max" className="text-sm">To</Label>
+                    <Input
+                      id="time-max"
+                      type="datetime-local"
+                      value={timeRangeMax}
+                      onChange={(e) => setTimeRangeMax(e.target.value)}
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <DialogFooter>
+              <Button variant="outline" onClick={handleClearFilters}>
                 Clear All
               </Button>
-            )}
-          </div>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {/* Basic Filters Row */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {/* Status Filter */}
-            <div className="space-y-2">
-              <Label>Status</Label>
-              <Select value={statusFilter} onValueChange={(v: any) => { setStatusFilter(v); setPage(0) }}>
-                <SelectTrigger>
-                  <Filter className="h-4 w-4 mr-2" />
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Status</SelectItem>
-                  <SelectItem value="success">Success Only</SelectItem>
-                  <SelectItem value="failed">Failed Only</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Message Type Filter */}
-            <div className="space-y-2">
-              <Label>Message Type</Label>
-              <Select value={messageTypeFilter} onValueChange={(v) => { setMessageTypeFilter(v); setPage(0) }}>
-                <SelectTrigger>
-                  <Activity className="h-4 w-4 mr-2" />
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {MESSAGE_TYPES.map(type => (
-                    <SelectItem key={type.value} value={type.value}>
-                      {type.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Single Block Filter */}
-            <div className="space-y-2">
-              <Label>Block Height</Label>
-              <Input
-                type="number"
-                placeholder="Enter block number"
-                value={blockFilter}
-                onChange={(e) => { setBlockFilter(e.target.value); setPage(0) }}
-              />
-            </div>
-          </div>
-
-          {/* Advanced Filters Toggle */}
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
-            className="w-full"
-          >
-            {showAdvancedFilters ? 'Hide' : 'Show'} Advanced Filters
-          </Button>
-
-          {/* Advanced Filters */}
-          {showAdvancedFilters && (
-            <div className="space-y-4 pt-4 border-t">
-              {/* Block Range */}
-              <div className="space-y-2">
-                <Label className="flex items-center gap-2">
-                  <Layers className="h-4 w-4" />
-                  Block Height Range
-                </Label>
-                <div className="grid grid-cols-2 gap-4">
-                  <Input
-                    type="number"
-                    placeholder="Min block"
-                    value={blockRangeMin}
-                    onChange={(e) => { setBlockRangeMin(e.target.value); setBlockFilter(''); setPage(0) }}
-                    disabled={!!blockFilter}
-                  />
-                  <Input
-                    type="number"
-                    placeholder="Max block"
-                    value={blockRangeMax}
-                    onChange={(e) => { setBlockRangeMax(e.target.value); setBlockFilter(''); setPage(0) }}
-                    disabled={!!blockFilter}
-                  />
-                </div>
-                {blockFilter && (
-                  <p className="text-xs text-muted-foreground">Clear single block filter to use range</p>
-                )}
-              </div>
-
-              {/* Time Range */}
-              <div className="space-y-2">
-                <Label className="flex items-center gap-2">
-                  <Calendar className="h-4 w-4" />
-                  Time Range
-                </Label>
-                <div className="grid grid-cols-2 gap-4">
-                  <Input
-                    type="datetime-local"
-                    value={timeRangeMin}
-                    onChange={(e) => { setTimeRangeMin(e.target.value); setPage(0) }}
-                  />
-                  <Input
-                    type="datetime-local"
-                    value={timeRangeMax}
-                    onChange={(e) => { setTimeRangeMax(e.target.value); setPage(0) }}
-                  />
-                </div>
-              </div>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+              <Button onClick={() => { setFilterOpen(false); setPage(0) }}>
+                Apply Filters
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </div>
 
       <Card>
         <CardHeader>

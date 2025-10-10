@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router'
 import { Search, Loader2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { YaciAPIClient } from '@/lib/api/client'
-import toast from 'react-hot-toast'
 
 export function SearchBar() {
   const [query, setQuery] = useState('')
@@ -34,7 +33,7 @@ export function SearchBar() {
       const results = await api.search(query)
 
       if (results.length === 0) {
-        toast.error('No results found')
+        console.log('No results found')
         return
       }
 
@@ -51,14 +50,13 @@ export function SearchBar() {
           navigate(`/address/${result.value.address}`)
           break
         default:
-          toast.error('Unknown result type')
+          console.error('Unknown result type')
       }
 
       setQuery('')
       setIsOpen(false)
     } catch (error) {
-      toast.error('Search failed')
-      console.error('Search error:', error)
+      console.error('Search failed:', error)
     } finally {
       setIsSearching(false)
     }
