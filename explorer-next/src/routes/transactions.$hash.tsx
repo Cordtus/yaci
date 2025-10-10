@@ -216,6 +216,30 @@ export default function TransactionDetailPage() {
                   </p>
                 </div>
               )}
+
+              {/* Dynamic Message-Specific Details */}
+              {transaction.messages && transaction.messages.length > 0 && (
+                <div className="mt-6 space-y-4">
+                  <div className="border-t pt-4">
+                    <label className="text-sm font-medium text-muted-foreground mb-3 block">Transaction Details</label>
+                    {transaction.messages.map((message, msgIdx) => {
+                      const messageEvents = transaction.events?.filter(e => e.msg_index === msgIdx) || []
+                      const groupedEvents = groupEvents(messageEvents)
+
+                      return (
+                        <div key={msgIdx} className="mb-4">
+                          {msgIdx > 0 && <div className="border-t my-4" />}
+                          <MessageDetails
+                            type={message.type}
+                            metadata={message.metadata}
+                            events={groupedEvents}
+                          />
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
 
@@ -266,12 +290,23 @@ export default function TransactionDetailPage() {
 
                           <CollapsibleContent>
                             <div className="px-4 pb-4 space-y-4">
-                              {/* Message-Specific Details */}
-                              <MessageDetails
-                                type={message.type}
-                                metadata={message.metadata}
-                                events={groupedEvents}
-                              />
+                              {/* Message Details */}
+                              {message.sender && (
+                                <div className="bg-muted/30 rounded-lg p-3">
+                                  <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Sender</label>
+                                  <div className="flex items-center gap-2 mt-1">
+                                    <code className="text-sm font-mono">{message.sender}</code>
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      className="h-5 w-5"
+                                      onClick={() => copyToClipboard(message.sender)}
+                                    >
+                                      <Copy className="h-3 w-3" />
+                                    </Button>
+                                  </div>
+                                </div>
+                              )}
 
                               {/* Events nested under message */}
                               {groupedEvents.length > 0 && (
