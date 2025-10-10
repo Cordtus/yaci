@@ -81,6 +81,10 @@ export class YaciAPIClient {
     filters: {
       status?: 'success' | 'failed'
       block_height?: number
+      block_height_min?: number
+      block_height_max?: number
+      timestamp_min?: string
+      timestamp_max?: string
       message_type?: string
     } = {}
   ): Promise<PaginatedResponse<EnhancedTransaction>> {
@@ -96,8 +100,24 @@ export class YaciAPIClient {
       params.append('error', 'not.is.null')
     }
 
+    // Block height filters
     if (filters.block_height) {
       params.append('height', `eq.${filters.block_height}`)
+    } else {
+      if (filters.block_height_min) {
+        params.append('height', `gte.${filters.block_height_min}`)
+      }
+      if (filters.block_height_max) {
+        params.append('height', `lte.${filters.block_height_max}`)
+      }
+    }
+
+    // Timestamp filters
+    if (filters.timestamp_min) {
+      params.append('timestamp', `gte.${filters.timestamp_min}`)
+    }
+    if (filters.timestamp_max) {
+      params.append('timestamp', `lte.${filters.timestamp_max}`)
     }
 
     const response = await fetch(`${this.baseUrl}/transactions_main?${params}`)
