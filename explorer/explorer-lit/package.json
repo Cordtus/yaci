@@ -1,0 +1,33 @@
+{
+  "name": "yaci-explorer-lit",
+  "version": "1.0.0",
+  "description": "Modern blockchain explorer built with Lit.dev",
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "serve": "vite preview --port 5174"
+  },
+  "keywords": [
+    "blockchain",
+    "explorer",
+    "lit",
+    "web-components"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "date-fns": "^4.1.0",
+    "lit": "^3.3.1",
+    "prismjs": "^1.30.0"
+  },
+  "devDependencies": {
+    "@lit-labs/testing": "^0.2.7",
+    "@open-wc/testing-helpers": "^3.0.1",
+    "@types/node": "^24.3.0",
+    "typescript": "^5.9.2",
+    "vite": "^7.1.3"
+  }
+}

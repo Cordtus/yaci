@@ -31,7 +31,12 @@ export class YaciAPIClient {
   // Block methods
   async getBlocks(limit = 20, offset = 0): Promise<PaginatedResponse<Block>> {
     const response = await fetch(
-      `${this.baseUrl}/blocks_raw?limit=${limit}&offset=${offset}&order=id.desc`
+      `${this.baseUrl}/blocks_raw?limit=${limit}&offset=${offset}&order=id.desc`,
+      {
+        headers: {
+          'Prefer': 'count=exact'
+        }
+      }
     )
 
     if (!response.ok) {
@@ -120,7 +125,11 @@ export class YaciAPIClient {
       params.append('timestamp', `lte.${filters.timestamp_max}`)
     }
 
-    const response = await fetch(`${this.baseUrl}/transactions_main?${params}`)
+    const response = await fetch(`${this.baseUrl}/transactions_main?${params}`, {
+      headers: {
+        'Prefer': 'count=exact'
+      }
+    })
     if (!response.ok) {
       throw new Error('Failed to fetch transactions')
     }
