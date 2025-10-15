@@ -1,0 +1,47 @@
+# Git
+.git
+.gitignore
+.github
+
+# Explorer (now in separate repo)
+explorer-next
+explorer
+
+# Build artifacts
+bin/
+build/
+*.log
+coverage.html
+/tmp
+
+# Documentation
+*.md
+!README.md
+docs/
+
+# Docker files
+docker-compose*.yml
+Dockerfile*
+.dockerignore
+
+# Scripts (not needed in image)
+scripts/
+
+# Development files
+.env
+.env.*
+*.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Testing
+*.test
+testdata/
+
+# Dependencies
+vendor/
