@@ -4,7 +4,31 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Repository Overview
 
-`yaci` is a Go-based blockchain data extraction tool that connects to Cosmos SDK chains via gRPC and indexes block/transaction data into PostgreSQL. It includes a modern block explorer UI for visualizing the indexed data, with native support for both Cosmos and EVM transactions.
+`yaci` is a Go-based blockchain data extraction tool that connects to Cosmos SDK chains via gRPC and indexes block/transaction data into PostgreSQL. It provides the data backend for blockchain explorers and analytics tools, with native support for both Cosmos and EVM transactions.
+
+**Block Explorer**: The web UI has been separated into its own repository: [yaci-explorer](https://github.com/Cordtus/yaci-explorer). This repository focuses solely on the indexer.
+
+## Code Documentation Standards
+
+**IMPORTANT**: Always add TSDoc-style comments when building or working on any part of the project:
+
+- **TypeScript/JavaScript**: Use JSDoc/TSDoc format with `@param`, `@returns`, `@throws`, `@example` tags
+- **Go**: Use standard Go doc comments (sentence starting with function/type name)
+- **All exported functions/types**: Must have documentation comments
+- **Complex logic**: Add inline comments explaining the "why" not the "what"
+- **Public APIs**: Include usage examples in comments
+
+Example:
+```typescript
+/**
+ * Fetches block data from the PostgREST API
+ * @param blockHeight - The height of the block to fetch
+ * @returns Promise resolving to block data with transactions
+ * @throws {Error} If the block is not found or network error occurs
+ * @example
+ * const block = await fetchBlock(12345);
+ */
+```
 
 ## Architecture
 
@@ -61,29 +85,6 @@ docker-compose -f docker-compose.explorer.yml up -d
 ./bin/yaci extract postgres localhost:9090 -p postgres://user:pass@localhost/db --reindex
 ```
 
-### Block Explorer Development
-
-```bash
-cd explorer-next
-
-# Install dependencies
-npm install
-
-# Run development server (default port 3000)
-npm run dev
-
-# Build for production
-npm run build
-
-# Run production server
-npm start
-
-# Type checking
-npm run type-check
-
-# Format code
-npm run format
-```
 
 ### Testing
 
@@ -114,6 +115,49 @@ make format
 # Security vulnerability check
 make govulncheck
 ```
+
+### Convenience Scripts
+
+The repository includes utility scripts for development:
+
+```bash
+# Start indexer with infrastructure (PostgreSQL + test chain)
+./scripts/start-indexer.sh
+# This script:
+# - Checks for running services and avoids duplicates
+# - Starts Docker infrastructure (PostgreSQL, manifest-ledger)
+# - Waits for health checks before proceeding
+# - Starts yaci indexer in background with --live mode
+# - All services remain running after terminal closes (nohup)
+# - Logs written to: yaci-indexer.log
+
+# Access points after starting:
+# - PostgreSQL:         localhost:5432
+# - Blockchain gRPC:    localhost:9090
+# - Blockchain RPC:     http://localhost:26657
+# - Prometheus metrics: http://localhost:2112/metrics
+
+# Stop all indexer services and clean up
+./scripts/stop-all.sh
+# This script:
+# - Stops yaci indexer background process
+# - Stops and removes Docker containers
+# - Stops all docker-compose stacks (infra, yaci demo)
+# - Cleans up any remaining yaci-related containers
+# - Does NOT remove Docker volumes (use 'docker volume prune' manually)
+
+# Monitor logs:
+tail -f yaci-indexer.log               # Indexer logs
+docker logs -f infra-manifest-ledger-1 # Test chain logs
+docker logs -f infra-db-1              # PostgreSQL logs
+```
+
+**When to use each approach:**
+
+- **`make docker-up`**: Quick demo with everything in Docker (good for testing)
+- **`make docker-infra-up`**: Just PostgreSQL, manually run yaci binary (good for indexer development)
+- **`./scripts/start-indexer.sh`**: Persistent stack for active development (services survive terminal close)
+- **Docker image**: Production deployment (pull from ghcr.io and run with docker compose)
 
 ## Database Schema
 
@@ -295,30 +339,45 @@ yaci/
 │   │   └── processor.go   # Conversion to Blockscout format
 │   ├── config/            # Configuration structs & validation
 │   └── utils/             # Shared utilities
-├── explorer-next/         # Modern block explorer (Next.js 14)
-│   ├── src/
-│   │   ├── app/           # Next.js App Router pages
-│   │   ├── components/    # React components (Radix UI + Tailwind)
-│   │   ├── lib/
-│   │   │   ├── api/       # PostgREST API client
-│   │   │   └── utils/     # Helper functions
-│   │   ├── types/         # TypeScript type definitions
-│   │   └── config/        # Chain configurations
-│   └── public/            # Static assets
-├── explorer/              # Legacy explorer (Lit-based, deprecated)
 ├── docker/
-│   ├── infra/            # Infrastructure only (PostgreSQL)
-│   └── yaci/             # Full stack (indexer + PostgreSQL + chain)
-├── docker-compose.yml         # Basic demo setup
-└── docker-compose.explorer.yml # Full explorer stack
+│   ├── Dockerfile        # Production Docker image
+│   ├── infra/           # Infrastructure only (PostgreSQL + manifest-ledger)
+│   │   └── compose.yaml # Docker Compose for infra
+│   └── yaci/            # Full demo stack (indexer + PostgreSQL + chain)
+│       └── compose.yaml # Docker Compose for demo
+├── scripts/             # Utility scripts
+│   ├── start-indexer.sh     # Start indexer with infrastructure
+│   ├── stop-all.sh          # Stop all services
+│   └── docker-maintenance.sh # Docker cleanup utilities
+├── .github/
+│   └── workflows/
+│       └── docker-publish.yml # Auto-publish Docker images
+├── docker-compose.yml       # Basic demo setup
+├── .dockerignore            # Docker build excludes
+├── Makefile                 # Development commands
+├── README.md                # Project documentation
+└── CLAUDE.md                # Development guide (this file)
 ```
 
 ### Key Files to Know
 
+**Core Indexer:**
 - **internal/extractor/extractor.go**: Main extraction logic, block range calculation, missing block detection
 - **internal/client/client.go**: gRPC initialization, server reflection setup
 - **internal/reflection/resolver.go**: Dynamic protobuf resolution for nested `Any` types
 - **internal/output/postgresql/postgresql.go**: Database operations, transaction handling
+- **internal/evm/parser.go**: EVM transaction parsing for Cosmos chains
 - **cmd/yaci/postgres.go**: PostgreSQL command setup, Prometheus server startup
-- **explorer-next/src/lib/api/client.ts**: PostgREST API client for explorer UI
+- **cmd/yaci/root.go**: Root CLI command and configuration loading
+
+**Build & Config:**
 - **Makefile**: All development commands and build configurations
+- **docker/Dockerfile**: Production Docker image build
+- **.github/workflows/docker-publish.yml**: Auto-publish to GitHub Container Registry
+- **go.mod**: Go module dependencies
+- **main.go**: Application entry point
+
+**Database:**
+- **internal/output/postgresql/migrations/**: SQL migrations (auto-run on startup)
+- Database schema includes two-tier storage (raw JSON + parsed tables)
+- Triggers automatically parse JSON on insert/update

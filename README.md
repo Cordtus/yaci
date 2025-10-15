@@ -8,13 +8,16 @@
 [![codecov](https://codecov.io/github/manifest-network/yaci/graph/badge.svg?token=E0fP14l7Ct)](https://codecov.io/github/manifest-network/yaci)
 [![Go Report Card](https://goreportcard.com/badge/github.com/manifest-network/yaci)](https://goreportcard.com/report/github.com/manifest-network/yaci)
 
-`yaci` is a command-line tool that connects to a gRPC server and extracts blockchain data, with an integrated modern block explorer for visualizing the indexed data.
+`yaci` is a command-line tool that connects to Cosmos SDK chains via gRPC and extracts blockchain data to PostgreSQL for off-chain storage and indexing.
 
-## Use-case
+> **Looking for the Block Explorer?** See [yaci-explorer](https://github.com/Cordtus/yaci-explorer) - a separate project that provides a modern web UI for visualizing yaci-indexed data.
+
+## Use Cases
 
 - Off-chain indexing of block & transaction data
 - Real-time blockchain monitoring and analytics
-- Full-featured block explorer with Cosmos and EVM support
+- Data warehouse for blockchain analytics and reporting
+- API backend via PostgREST for custom applications
 
 ## Requirements
 
@@ -27,21 +30,14 @@
 
 ## Features
 
-### Indexer
-- Ability to extract block and transaction chain data to PostgreSQL.
-- Leverages gRPC server reflection; no need to specify the proto file.
-- (Nested) `Any` type are properly decoded.
-- Live monitoring of the blockchain.
-- Batch extraction of data.
-- Native EVM transaction support for Cosmos chains with EVM modules.
-
-### Block Explorer
-- Modern, responsive web interface for exploring indexed data
-- Real-time updates with live blockchain synchronization
-- Dual support for Cosmos and EVM transactions
-- Universal search across blocks, transactions, and addresses
-- Rich transaction details with message decoding
-- Chain statistics and analytics dashboard
+- **PostgreSQL Output**: Extracts block and transaction data to PostgreSQL with two-tier storage (raw JSON + parsed tables)
+- **gRPC Server Reflection**: Auto-discovers protobuf definitions; no need to specify proto files
+- **Dynamic Protobuf Decoding**: Properly decodes nested `Any` types using custom resolver
+- **Live Monitoring**: Continuous extraction with configurable polling intervals
+- **Batch Extraction**: Concurrent block fetching with configurable concurrency (default: 100)
+- **EVM Support**: Native support for Cosmos chains with EVM modules (Ethermint, etc.)
+- **Prometheus Metrics**: Optional metrics server for monitoring indexer performance
+- **Auto-Recovery**: Detects and fills gaps in indexed data
 
 ## Installation
 
@@ -195,38 +191,48 @@ The configuration file is searched in the following order:
 - The user's home directory (`$HOME/.yaci`)
 - The system's configuration directory (`/etc/yaci`)
 
-## Demo
+## Quick Start with Docker
 
-To run the demo, you need to have Docker installed on your system.
+To run a demo indexer with test blockchain:
 
-### Option 1: Basic Demo (PostgREST API)
 ```shell
-# Build and start the e2e environment
+# Build and start the test environment (includes PostgreSQL + test chain + indexer)
 make docker-up
-```
 
-Wait for the e2e environment to start. Then, open a new browser tab and navigate to http://localhost:3000/blocks?order=id.desc to view the blocks and to http://localhost:3000/transactions to view the transactions.
+# View indexed data via PostgREST API
+curl "http://localhost:3000/blocks_raw?order=id.desc&limit=10"
+curl "http://localhost:3000/transactions_main?order=height.desc&limit=10"
 
-### Option 2: Full Block Explorer Demo
-```shell
-# Start the full explorer stack
-docker-compose -f docker-compose.explorer.yml up -d
-```
-
-This starts the complete block explorer stack:
-- **Block Explorer UI**: http://localhost:3001
-- **PostgREST API**: http://localhost:3000
-- **Prometheus Metrics**: http://localhost:2112
-- **PgAdmin** (optional): http://localhost:8080
-
-To stop the environment:
-
-```shell
-# For basic demo
+# Stop the environment
 make docker-down
+```
 
-# For full explorer
-docker-compose -f docker-compose.explorer.yml down
+This starts:
+- **PostgreSQL**: localhost:5432 (indexed data storage)
+- **PostgREST API**: http://localhost:3000 (REST API for indexed data)
+- **Manifest Ledger**: localhost:9090 (test chain)
+- **Yaci Indexer**: Indexes blocks in live mode
+
+## Production Usage
+
+For production deployments, see the [Docker deployment guide](#docker-deployment) below or use the [yaci-explorer](https://github.com/Cordtus/yaci-explorer) full-stack deployment.
+
+### Using Docker Image
+
+```bash
+# Pull published image
+docker pull ghcr.io/manifest-network/yaci:latest
+
+# Run indexer
+docker run -d \
+  --name yaci-indexer \
+  --network host \
+  ghcr.io/manifest-network/yaci:latest \
+  extract postgres YOUR_CHAIN_GRPC:9090 \
+  -p postgres://user:pass@localhost:5432/dbname \
+  --live \
+  -k \
+  --enable-prometheus
 ```
 
 ## Testing

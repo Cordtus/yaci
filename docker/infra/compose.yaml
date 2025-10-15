@@ -97,7 +97,7 @@ services:
       PGRST_DB_SCHEMA: api
       PGRST_DB_ANON_ROLE: web_anon
     ports:
-      - "3000:3000"
+      - "3010:3000"
     depends_on:
       db:
         condition: service_healthy
