@@ -1,0 +1,39 @@
+[Unit]
+Description=Yaci Blockchain Indexer
+Documentation=https://github.com/manifest-network/yaci
+After=network-online.target postgresql.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/yaci
+EnvironmentFile=/opt/yaci/config/yaci.env
+
+# Security hardening
+NoNewPrivileges=true
+PrivateTmp=true
+
+# Restart policy
+Restart=on-failure
+RestartSec=10s
+StartLimitInterval=300
+StartLimitBurst=5
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=yaci-indexer
+
+# Main service execution
+ExecStart=/opt/yaci/bin/yaci extract postgres ${CHAIN_GRPC_ENDPOINT} \
+    -p "${POSTGRES_CONN_STRING}" \
+    ${EXTRA_FLAGS}
+
+# Graceful shutdown
+TimeoutStopSec=30s
+KillMode=mixed
+KillSignal=SIGTERM
+
+[Install]
+WantedBy=multi-user.target

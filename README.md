@@ -41,6 +41,17 @@ go install github.com/manifest-network/yaci@latest
 
 The `yaci` binary will be installed in the `$GOPATH/bin` directory.
 
+### Production Deployment
+
+For production deployments with systemd service management, see the comprehensive [Deployment Guide](docs/DEPLOYMENT.md).
+
+Quick production install:
+```sh
+git clone https://github.com/manifest-network/yaci.git
+cd yaci
+sudo ./scripts/deploy.sh install
+```
+
 ## Usage
 The basic usage of the yaci tool is as follows:
 ```shell
