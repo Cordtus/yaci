@@ -105,7 +105,37 @@ func RetryGRPCCall[T any](
 	return zero, errors.WithMessage(err, fmt.Sprintf("Failed after %d retries", maxRetries))
 }
 
+// getNestedField navigates through nested message fields using dot notation
+func getNestedField(msg protoreflect.Message, fieldPath string) (protoreflect.Value, error) {
+	fields := strings.Split(fieldPath, ".")
+	currentMsg := msg
+	var currentValue protoreflect.Value
+
+	for i, fieldName := range fields {
+		fieldDesc := currentMsg.Descriptor().Fields().ByName(protoreflect.Name(fieldName))
+		if fieldDesc == nil {
+			return protoreflect.Value{}, fmt.Errorf("field '%s' not found in message", fieldName)
+		}
+
+		currentValue = currentMsg.Get(fieldDesc)
+		if !currentValue.IsValid() {
+			return protoreflect.Value{}, fmt.Errorf("field '%s' has no value", fieldName)
+		}
+
+		// If not the last field, navigate into the nested message
+		if i < len(fields)-1 {
+			if fieldDesc.Kind() != protoreflect.MessageKind {
+				return protoreflect.Value{}, fmt.Errorf("field '%s' is not a message, cannot navigate further", fieldName)
+			}
+			currentMsg = currentValue.Message()
+		}
+	}
+
+	return currentValue, nil
+}
+
 // ExtractGRPCField calls a gRPC method and extracts a specific field from the response
+// Supports nested field paths using dot notation (e.g., "sdkBlock.header.height")
 func ExtractGRPCField[T any](
 	gRPCClient *client.GRPCClient,
 	methodFullName string,
@@ -121,11 +151,12 @@ func ExtractGRPCField[T any](
 			outputMsg, err := invokeGRPC(gRPCClient, fullMethodName, methodDescriptor, nil)
 			if err != nil {
 				var zero T
-				return zero, fmt.Errorf("error invoking method: $%w", err)
+				return zero, fmt.Errorf("error invoking method: %w", err)
 			}
 
-			fieldValue := outputMsg.ProtoReflect().Get(outputMsg.Descriptor().Fields().ByName(protoreflect.Name(fieldName)))
-			if !fieldValue.IsValid() {
+			// Support nested field paths
+			fieldValue, err := getNestedField(outputMsg.ProtoReflect(), fieldName)
+			if err != nil {
 				var zero T
 				return zero, fmt.Errorf("field `%s` not found in response: %w", fieldName, err)
 			}

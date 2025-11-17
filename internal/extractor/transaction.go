@@ -5,6 +5,7 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"fmt"
+	"log/slog"
 
 	"github.com/manifest-network/yaci/internal/client"
 	"github.com/manifest-network/yaci/internal/models"
@@ -47,6 +48,23 @@ func extractTransactions(gRPCClient *client.GRPCClient, data map[string]interfac
 			maxRetries,
 			txJsonParams,
 		)
+
+		// Handle transaction fetch failures gracefully
+		if err != nil {
+			// Create minimal transaction record with error metadata
+			errorJSON := []byte(fmt.Sprintf(`{"error": "failed to fetch transaction details", "hash": "%s", "reason": %q}`, hashStr, err.Error()))
+			transaction := &models.Transaction{
+				Hash: hashStr,
+				Data: errorJSON,
+			}
+			transactions = append(transactions, transaction)
+
+			// Log warning for monitoring and debugging
+			slog.Warn("Failed to fetch transaction details, storing with error metadata",
+				"hash", hashStr,
+				"error", err)
+			continue
+		}
 
 		transaction := &models.Transaction{
 			Hash: hashStr,
