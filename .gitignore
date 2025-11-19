@@ -2,3 +2,4 @@
 bin/
 out/
 tsv/
+config/yaci.env
