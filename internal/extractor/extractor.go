@@ -54,29 +54,35 @@ func Extract(gRPCClient *client.GRPCClient, outputHandler output.OutputHandler, 
 func setBlockRange(gRPCClient *client.GRPCClient, outputHandler output.OutputHandler, cfg *config.ExtractConfig) error {
 	if cfg.ReIndex {
 		slog.Info("Reindexing entire database...")
-		// TODO: Get the earliest block from the gRPC server
-		// See https://github.com/manifest-network/yaci/issues/28
-		cfg.BlockStart = 1
 		earliestLocalBlock, err := outputHandler.GetEarliestBlock(gRPCClient.Ctx)
 		if err != nil {
 			return fmt.Errorf("failed to get the earliest local block: %w", err)
 		}
 		if earliestLocalBlock != nil {
 			cfg.BlockStart = earliestLocalBlock.ID
+		} else {
+			// Fresh DB - query node for earliest available height
+			cfg.BlockStart, err = utils.GetEarliestBlockHeight(gRPCClient, cfg.MaxRetries)
+			if err != nil {
+				return fmt.Errorf("failed to get earliest block height: %w", err)
+			}
 		}
 		cfg.BlockStop = 0
 	}
 
 	if cfg.BlockStart == 0 {
-		// TODO: Get the earliest block from the gRPC server
-		// See https://github.com/manifest-network/yaci/issues/28
-		cfg.BlockStart = 1
 		latestLocalBlock, err := outputHandler.GetLatestBlock(gRPCClient.Ctx)
 		if err != nil {
 			return fmt.Errorf("failed to get the latest block: %w", err)
 		}
 		if latestLocalBlock != nil {
 			cfg.BlockStart = latestLocalBlock.ID + 1
+		} else {
+			// Fresh DB - query node for earliest available height
+			cfg.BlockStart, err = utils.GetEarliestBlockHeight(gRPCClient, cfg.MaxRetries)
+			if err != nil {
+				return fmt.Errorf("failed to get earliest block height: %w", err)
+			}
 		}
 	}
 

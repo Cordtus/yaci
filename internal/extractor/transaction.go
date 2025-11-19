@@ -5,6 +5,7 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"fmt"
+	"log/slog"
 
 	"github.com/manifest-network/yaci/internal/client"
 	"github.com/manifest-network/yaci/internal/models"
@@ -47,6 +48,27 @@ func extractTransactions(gRPCClient *client.GRPCClient, data map[string]interfac
 			maxRetries,
 			txJsonParams,
 		)
+
+		// Graceful degradation: store error metadata instead of failing the entire block.
+		// This handles edge cases discovered in production:
+		// - Oversized transactions exceeding max gRPC message size (seen on Mantrachain)
+		// - Transient RPC failures for individual transactions
+		// - Malformed transaction data on certain chains
+		// The block is still recorded, and downstream consumers can identify failed
+		// transactions by checking for the "error" field in the JSON data.
+		if err != nil {
+			errorJSON := []byte(fmt.Sprintf(`{"error": "failed to fetch transaction details", "hash": "%s", "reason": %q}`, hashStr, err.Error()))
+			transaction := &models.Transaction{
+				Hash: hashStr,
+				Data: errorJSON,
+			}
+			transactions = append(transactions, transaction)
+
+			slog.Warn("Failed to fetch transaction details, storing with error metadata",
+				"hash", hashStr,
+				"error", err)
+			continue
+		}
 
 		transaction := &models.Transaction{
 			Hash: hashStr,
