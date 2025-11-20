@@ -1,0 +1,19 @@
+app = "republic-yaci-indexer"
+primary_region = "sjc"
+
+[build]
+  dockerfile = "Dockerfile"
+
+[[services]]
+  protocol = "tcp"
+  internal_port = 2112
+
+  [[services.ports]]
+    port = 2112
+    handlers = ["http"]
+
+  [services.concurrency]
+    type = "connections"
+    soft_limit = 50
+    hard_limit = 100
+
