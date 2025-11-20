@@ -23,9 +23,13 @@ RUN CGO_ENABLED=0 GOOS=linux go build -tags manifest -a -installsuffix cgo -o ya
 FROM debian:bookworm-slim
 
 # Install the ca-certificates package to have SSL/TLS certificates available.
-RUN apt-get update && apt-get install -y ca-certificates curl
+RUN apt-get update && apt-get install -y ca-certificates curl && rm -rf /var/lib/apt/lists/*
 
-# Copy the pre-built binary file and script from the previous stage.
+# Copy the pre-built binary file from the previous stage.
 COPY --from=builder /app/yaci /usr/local/bin/yaci
 
-ENTRYPOINT ["/usr/local/bin/yaci"]
+# Copy a small entrypoint that wires env vars into the yaci command.
+COPY docker/entrypoint.sh /usr/local/bin/entrypoint.sh
+RUN chmod +x /usr/local/bin/entrypoint.sh
+
+ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]

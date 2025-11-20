@@ -10,8 +10,6 @@ jobs:
     runs-on: ubuntu-latest
     env:
       FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
-      YACI_GRPC_ENDPOINT: ${{ secrets.YACI_GRPC_ENDPOINT }}
-      YACI_POSTGRES_DSN: ${{ secrets.YACI_POSTGRES_DSN }}
 
     steps:
       - name: Checkout repository
@@ -22,13 +20,9 @@ jobs:
 
       - name: Deploy to Fly.io
         run: |
-          if [ -z "$FLY_API_TOKEN" ] || [ -z "$YACI_GRPC_ENDPOINT" ] || [ -z "$YACI_POSTGRES_DSN" ]; then
-            echo "Required secrets FLY_API_TOKEN, YACI_GRPC_ENDPOINT, or YACI_POSTGRES_DSN are not set."
+          if [ -z "$FLY_API_TOKEN" ]; then
+            echo "Required secret FLY_API_TOKEN is not set."
             exit 1
           fi
 
-          flyctl deploy \
-            --remote-only \
-            --app republic-yaci-indexer \
-            --command "extract postgres ${YACI_GRPC_ENDPOINT} -p ${YACI_POSTGRES_DSN} --live --enable-prometheus --prometheus-addr 0.0.0.0:2112"
-
+          flyctl deploy --remote-only --app republic-yaci-indexer
