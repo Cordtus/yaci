@@ -10,6 +10,8 @@ jobs:
     runs-on: ubuntu-latest
     env:
       FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+      YACI_GRPC_ENDPOINT: ${{ secrets.YACI_GRPC_ENDPOINT }}
+      YACI_POSTGRES_DSN: ${{ secrets.YACI_POSTGRES_DSN }}
 
     steps:
       - name: Checkout repository
@@ -24,5 +26,15 @@ jobs:
             echo "Required secret FLY_API_TOKEN is not set."
             exit 1
           fi
+          if [ -z "$YACI_GRPC_ENDPOINT" ] || [ -z "$YACI_POSTGRES_DSN" ]; then
+            echo "Required secrets YACI_GRPC_ENDPOINT and/or YACI_POSTGRES_DSN are not set."
+            exit 1
+          fi
+
+          # Keep Fly app secrets in sync with GitHub secrets
+          flyctl secrets set \
+            YACI_GRPC_ENDPOINT="$YACI_GRPC_ENDPOINT" \
+            YACI_POSTGRES_DSN="$YACI_POSTGRES_DSN" \
+            --app republic-yaci-indexer --non-interactive
 
           flyctl deploy --remote-only --app republic-yaci-indexer

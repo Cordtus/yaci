@@ -17,3 +17,8 @@ primary_region = "sjc"
     soft_limit = 50
     hard_limit = 100
 
+  [deploy]
+    # keep one machine running; set to 0..
+    # to spin up/down on demand
+    min_machines_running = 1
+    strategy = "rolling"
