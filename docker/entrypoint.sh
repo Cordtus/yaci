@@ -6,4 +6,4 @@ if [ -z "$YACI_GRPC_ENDPOINT" ] || [ -z "$YACI_POSTGRES_DSN" ]; then
   exit 1
 fi
 
-exec yaci extract postgres "$YACI_GRPC_ENDPOINT" -p "$YACI_POSTGRES_DSN" --live --enable-prometheus --prometheus-addr 0.0.0.0:2112 "$@"
+exec yaci extract postgres "$YACI_GRPC_ENDPOINT" -p "$YACI_POSTGRES_DSN" --live --enable-prometheus --prometheus-addr 0.0.0.0:2112 -c "${YACI_CONCURRENCY:-5}" "$@"
