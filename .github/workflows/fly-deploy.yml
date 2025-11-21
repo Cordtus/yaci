@@ -35,6 +35,6 @@ jobs:
           flyctl secrets set \
             YACI_GRPC_ENDPOINT="$YACI_GRPC_ENDPOINT" \
             YACI_POSTGRES_DSN="$YACI_POSTGRES_DSN" \
-            --app republic-yaci-indexer --non-interactive
+            --app republic-yaci-indexer
 
           flyctl deploy --remote-only --app republic-yaci-indexer
