@@ -80,7 +80,7 @@ The following flags are available for all `extract` subcommand:
 - `-t`, `--block-time` - The time to wait between each block extraction (default: 2s)
 - `-s`, `--start` - The starting block height to extract data from (default: 1)
 - `-e`, `--stop` - The stopping block height to extract data from (default: 1)
-- `-k`, `--insecure` - Skip TLS certificate verification (default: false)'
+- `-k`, `--insecure` - Disable TLS and use an insecure plaintext connection (default: false)'
 - `--live` - Continuously extract data from the blockchain (default: false)
 - `--reindex` - Reindex the entire database from block 1 (default: false)'
 - `-r`, `--max-retries` - The maximum number of retries to connect to the gRPC server (default: 3)
@@ -166,7 +166,7 @@ Usage:
 #### Example
 
 ```shell
-yaci extract postgres localhost:9090 -p postgres://postgres:foobar@localhost/postgres -s 106000 -k --live -t 5
+yaci extract postgres localhost:9090 -p postgres://postgres:foobar@localhost/postgres -s 106000 --live -t 5
 ```
 
 This command will connect to the gRPC server running on `localhost:9090`, continuously extract data from block height `106000` and store the extracted data in the `postgres` database. New blocks and transactions will be inserted into the database every 5 seconds.
