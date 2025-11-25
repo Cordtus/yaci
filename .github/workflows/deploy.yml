@@ -1,7 +1,10 @@
 name: Deploy to Fly.io
 
 on:
-  push:
+  workflow_run:
+    workflows: ["CI"]
+    types:
+      - completed
     branches:
       - republic
   workflow_dispatch:
@@ -10,6 +13,7 @@ jobs:
   deploy:
     name: Deploy Indexer
     runs-on: ubuntu-latest
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
     steps:
       - uses: actions/checkout@v4
 
@@ -17,4 +21,4 @@ jobs:
 
       - run: flyctl deploy --remote-only
         env:
-          FLY_API_TOKEN: \${{ secrets.FLY_API_TOKEN }}
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
