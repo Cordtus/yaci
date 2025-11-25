@@ -22,8 +22,8 @@ RUN CGO_ENABLED=0 GOOS=linux go build -tags manifest -a -installsuffix cgo -o ya
 # Start from a Debian Slim image to keep the final image size down.
 FROM debian:bookworm-slim
 
-# Install the ca-certificates package to have SSL/TLS certificates available.
-RUN apt-get update && apt-get install -y ca-certificates curl postgresql-client && rm -rf /var/lib/apt/lists/*
+# Install ca-certificates for SSL/TLS
+RUN apt-get update && apt-get install -y ca-certificates curl && rm -rf /var/lib/apt/lists/*
 
 # Copy the pre-built binary file from the previous stage.
 COPY --from=builder /app/yaci /usr/local/bin/yaci
