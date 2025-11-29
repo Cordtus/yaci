@@ -1,0 +1,30 @@
+app = "republic-yaci-indexer"
+primary_region = "sjc"
+
+[build]
+  dockerfile = "Dockerfile"
+
+[[services]]
+  protocol = "tcp"
+  internal_port = 2112
+
+  [[services.ports]]
+    port = 2112
+    handlers = ["http"]
+
+  [services.concurrency]
+    type = "connections"
+    soft_limit = 50
+    hard_limit = 100
+
+  [[services.http_checks]]
+    interval = 10000
+    grace_period = "30s"
+    method = "get"
+    path = "/metrics"
+    protocol = "http"
+    timeout = 5000
+
+[deploy]
+  min_machines_running = 1
+  strategy = "rolling"
