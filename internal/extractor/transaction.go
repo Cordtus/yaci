@@ -49,9 +49,14 @@ func extractTransactions(gRPCClient *client.GRPCClient, data map[string]interfac
 			txJsonParams,
 		)
 
-		// Handle transaction fetch failures gracefully
+		// Graceful degradation: store error metadata instead of failing the entire block.
+		// This handles edge cases discovered in production:
+		// - Oversized transactions exceeding max gRPC message size (seen on Mantrachain)
+		// - Transient RPC failures for individual transactions
+		// - Malformed transaction data on certain chains
+		// The block is still recorded, and downstream consumers can identify failed
+		// transactions by checking for the "error" field in the JSON data.
 		if err != nil {
-			// Create minimal transaction record with error metadata
 			errorJSON := []byte(fmt.Sprintf(`{"error": "failed to fetch transaction details", "hash": "%s", "reason": %q}`, hashStr, err.Error()))
 			transaction := &models.Transaction{
 				Hash: hashStr,
@@ -59,7 +64,6 @@ func extractTransactions(gRPCClient *client.GRPCClient, data map[string]interfac
 			}
 			transactions = append(transactions, transaction)
 
-			// Log warning for monitoring and debugging
 			slog.Warn("Failed to fetch transaction details, storing with error metadata",
 				"hash", hashStr,
 				"error", err)

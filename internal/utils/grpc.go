@@ -105,7 +105,14 @@ func RetryGRPCCall[T any](
 	return zero, errors.WithMessage(err, fmt.Sprintf("Failed after %d retries", maxRetries))
 }
 
-// getNestedField navigates through nested message fields using dot notation
+// getNestedField navigates through nested protobuf message fields using dot notation.
+//
+// Example: "sdk_block.header.height" traverses Response -> Block -> Header -> height
+//
+// This is needed because some CosmosSDK chains wrap response data differently.
+// The Status endpoint returns {"height": "123"} on some chains but
+// {"sdk_block": {"header": {"height": "123"}}} on others (e.g., newer SDK versions).
+// Supporting dot notation allows a single field path to work across chain variations.
 func getNestedField(msg protoreflect.Message, fieldPath string) (protoreflect.Value, error) {
 	fields := strings.Split(fieldPath, ".")
 	currentMsg := msg
