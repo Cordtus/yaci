@@ -1,5 +1,8 @@
-app = "republic-yaci-indexer"
-primary_region = "sjc"
+# Fly.io configuration placeholder
+# Update these values for your deployment
+
+app = ""
+primary_region = ""
 
 [build]
   dockerfile = "Dockerfile"
