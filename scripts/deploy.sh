@@ -41,6 +41,63 @@ check_root() {
     fi
 }
 
+setup_postgresql() {
+    info "Setting up PostgreSQL..."
+
+    # Check if PostgreSQL is installed
+    if ! command -v psql &> /dev/null; then
+        info "Installing PostgreSQL..."
+        apt-get update
+        apt-get install -y postgresql postgresql-contrib
+    fi
+
+    # Start and enable PostgreSQL
+    systemctl start postgresql
+    systemctl enable postgresql
+
+    # Wait for PostgreSQL to be ready
+    sleep 2
+
+    # Parse connection string from config or use defaults
+    local db_user="yaci"
+    local db_pass="yaci"
+    local db_name="yaci"
+
+    if [ -f "${CONFIG_DIR}/yaci.env" ]; then
+        # Extract from connection string if it exists
+        local conn_string
+        conn_string=$(grep "^POSTGRES_CONN_STRING=" "${CONFIG_DIR}/yaci.env" | cut -d'=' -f2-)
+        if [ -n "$conn_string" ]; then
+            # Parse postgres://user:pass@host:port/dbname
+            db_user=$(echo "$conn_string" | sed -n 's|.*://\([^:]*\):.*|\1|p')
+            db_pass=$(echo "$conn_string" | sed -n 's|.*://[^:]*:\([^@]*\)@.*|\1|p')
+            db_name=$(echo "$conn_string" | sed -n 's|.*/\([^?]*\).*|\1|p')
+        fi
+    fi
+
+    info "Creating database user '${db_user}' and database '${db_name}'..."
+
+    # Create user and database
+    sudo -u postgres psql -v ON_ERROR_STOP=0 <<EOF
+DO \$\$
+BEGIN
+    IF NOT EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = '${db_user}') THEN
+        CREATE USER ${db_user} WITH PASSWORD '${db_pass}';
+    END IF;
+END
+\$\$;
+
+SELECT 'CREATE DATABASE ${db_name} OWNER ${db_user}' WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = '${db_name}')\gexec
+
+GRANT ALL PRIVILEGES ON DATABASE ${db_name} TO ${db_user};
+ALTER USER ${db_user} WITH SUPERUSER;
+EOF
+
+    success "PostgreSQL setup complete"
+    info "  Database: ${db_name}"
+    info "  User: ${db_user}"
+}
+
 build_binary() {
     info "Building yaci binary..."
     make build || error "Build failed"
@@ -132,6 +189,7 @@ Commands:
     update          Update binary and restart service
     build           Build binary only
     config          Setup configuration files
+    setup-db        Install and configure PostgreSQL
     start           Start the service
     stop            Stop the service
     restart         Restart the service
@@ -143,7 +201,8 @@ Commands:
     help            Show this help message
 
 Examples:
-    # First time installation
+    # First time installation (after setting up PostgreSQL)
+    sudo $0 setup-db
     sudo $0 install
 
     # Update after code changes
@@ -270,6 +329,10 @@ case "${1:-help}" in
     config)
         check_root
         setup_config
+        ;;
+    setup-db)
+        check_root
+        setup_postgresql
         ;;
     start)
         check_root
