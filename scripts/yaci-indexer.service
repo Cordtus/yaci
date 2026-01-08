@@ -26,7 +26,7 @@ StandardError=journal
 SyslogIdentifier=yaci-indexer
 
 # Main service execution
-ExecStart=/opt/yaci/bin/yaci extract postgres ${CHAIN_GRPC_ENDPOINT} -p "${POSTGRES_CONN_STRING}"
+ExecStart=/opt/yaci/bin/yaci extract postgres "${CHAIN_GRPC_ENDPOINT}" -p "${POSTGRES_CONN_STRING}"
 
 # Graceful shutdown
 TimeoutStopSec=30s
