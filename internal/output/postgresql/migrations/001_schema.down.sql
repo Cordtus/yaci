@@ -1,6 +1,3 @@
--- Drop tables
-DROP TABLE IF EXISTS api.transactions_raw;
-DROP TABLE IF EXISTS api.blocks_raw;
-
--- Drop schema (only if empty)
-DROP SCHEMA IF EXISTS api;
+-- Schema managed externally by yaci-explorer-apis
+-- This file intentionally left empty to prevent conflicts
+SELECT 1;
