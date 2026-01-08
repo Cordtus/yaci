@@ -47,12 +47,12 @@ services:
         context: ..
         dockerfile: Dockerfile.base
     volumes:
-      - ./proposals:/templates
-      - manifest-proposals-data:/proposals
-      - ./scripts/generate_proposals.sh:/usr/local/bin/generate_proposals.sh:ro
+      - ./proposals:/source
+      - manifest-proposals-data:/output
+      - ./scripts/generate_from_templates.sh:/usr/local/bin/generate_from_templates.sh:ro
     entrypoint: ["/bin/bash", "-c"]
     env_file: ../.env
-    command: /usr/local/bin/generate_proposals.sh
+    command: /usr/local/bin/generate_from_templates.sh /source /output
 
   manifest-generate-templates:
     restart: no
@@ -60,12 +60,12 @@ services:
         context: ..
         dockerfile: Dockerfile.base
     volumes:
-      - ./templates:/templates
-      - manifest-template-data:/generated
-      - ./scripts/generate_templates.sh:/usr/local/bin/generate_templates.sh:ro
+      - ./templates:/source
+      - manifest-template-data:/output
+      - ./scripts/generate_from_templates.sh:/usr/local/bin/generate_from_templates.sh:ro
     entrypoint: ["/bin/bash", "-c"]
     env_file: ../.env
-    command: /usr/local/bin/generate_templates.sh
+    command: /usr/local/bin/generate_from_templates.sh /source /output
 
   # Setup some transactions on the blockchain
   manifest-ledger-tx:
