@@ -47,37 +47,53 @@ func Extract(gRPCClient *client.GRPCClient, outputHandler output.OutputHandler, 
 	return nil
 }
 
-// setBlockRange sets correct the block range based on the configuration.
-// If the start block is not set, it will be set to the latest block in the database.
-// If the stop block is not set, it will be set to the latest block in the gRPC server.
-// If the start block is greater than the stop block, an error will be returned.
+// setBlockRange sets the block range based on the configuration.
+// If the start block is not set, it will be set to the latest block in the database + 1.
+// If the database is empty, it queries the node for the earliest available block.
+// The start height is always validated against the node's pruning boundary.
+// If the stop block is not set, it will be set to the latest block on the node.
+// Returns an error if the start block is greater than the stop block.
 func setBlockRange(gRPCClient *client.GRPCClient, outputHandler output.OutputHandler, cfg *config.ExtractConfig) error {
 	if cfg.ReIndex {
 		slog.Info("Reindexing entire database...")
-		// TODO: Get the earliest block from the gRPC server
-		// See https://github.com/manifest-network/yaci/issues/28
-		cfg.BlockStart = 1
 		earliestLocalBlock, err := outputHandler.GetEarliestBlock(gRPCClient.Ctx)
 		if err != nil {
 			return fmt.Errorf("failed to get the earliest local block: %w", err)
 		}
 		if earliestLocalBlock != nil {
 			cfg.BlockStart = earliestLocalBlock.ID
+		} else {
+			cfg.BlockStart = 1 // Will be validated below
 		}
 		cfg.BlockStop = 0
 	}
 
 	if cfg.BlockStart == 0 {
-		// TODO: Get the earliest block from the gRPC server
-		// See https://github.com/manifest-network/yaci/issues/28
-		cfg.BlockStart = 1
 		latestLocalBlock, err := outputHandler.GetLatestBlock(gRPCClient.Ctx)
 		if err != nil {
 			return fmt.Errorf("failed to get the latest block: %w", err)
 		}
 		if latestLocalBlock != nil {
 			cfg.BlockStart = latestLocalBlock.ID + 1
+		} else {
+			cfg.BlockStart = 1 // Will be validated below
 		}
+	}
+
+	// Always verify start height is available on the node.
+	// This handles pruned nodes and the edge case where the node was
+	// re-synced with a higher pruning point than the indexed data.
+	earliestAvailable, err := utils.GetEarliestBlockHeight(gRPCClient, cfg.MaxRetries)
+	if err != nil {
+		return fmt.Errorf("failed to determine earliest available block: %w", err)
+	}
+
+	if cfg.BlockStart < earliestAvailable {
+		slog.Info("Adjusting start height to earliest available on node",
+			"requestedStart", cfg.BlockStart,
+			"earliestAvailable", earliestAvailable,
+			"blocksUnavailable", earliestAvailable-cfg.BlockStart)
+		cfg.BlockStart = earliestAvailable
 	}
 
 	if cfg.BlockStop == 0 {
