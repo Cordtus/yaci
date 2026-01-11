@@ -13,7 +13,7 @@ import (
 const statusMethod = "cosmos.base.node.v1beta1.Service.Status"
 const getBlockByHeightMethod = "cosmos.base.tendermint.v1beta1.Service.GetBlockByHeight"
 
-// GetLatestBlockHeightWithRetry gets current block height from Status endpoint
+// GetLatestBlockHeightWithRetry retrieves the latest block height from the gRPC server with retry logic.
 func GetLatestBlockHeightWithRetry(gRPCClient *client.GRPCClient, maxRetries uint) (uint64, error) {
 	return ExtractGRPCField(
 		gRPCClient,
@@ -31,16 +31,9 @@ func GetLatestBlockHeightWithRetry(gRPCClient *client.GRPCClient, maxRetries uin
 }
 
 // GetEarliestBlockHeight determines the earliest available block on a node.
-//
-// Strategy:
-// 1. Probe block 1 with minimal retries (pruned nodes fail fast with clear error)
-// 2. If successful, node is an archive node - return 1
-// 3. If error contains "lowest height is X", node is pruned - return X
-// 4. If error is transient (network issue), retry with full retry count
-//
-// This approach minimizes latency for the common case (pruned nodes return
-// immediately with the lowest height) while still handling archive nodes
-// and transient failures gracefully.
+// It probes block 1 to check if the node is an archive node or pruned.
+// For archive nodes, returns 1. For pruned nodes, parses the error message
+// to extract the lowest available height.
 func GetEarliestBlockHeight(gRPCClient *client.GRPCClient, maxRetries uint) (uint64, error) {
 	inputParams := []byte(`{"height":"1"}`)
 
@@ -64,7 +57,8 @@ func GetEarliestBlockHeight(gRPCClient *client.GRPCClient, maxRetries uint) (uin
 	return 0, fmt.Errorf("failed to determine earliest block height: %w", err)
 }
 
-// parseLowestHeightFromError extracts lowest height from pruned node errors
+// parseLowestHeightFromError extracts lowest height from pruned node errors.
+// CosmosSDK nodes return errors like "height 1 is not available, lowest height is 28566001".
 func parseLowestHeightFromError(errMsg string) uint64 {
 	re := regexp.MustCompile(`lowest height is (\d+)`)
 	matches := re.FindStringSubmatch(strings.ToLower(errMsg))

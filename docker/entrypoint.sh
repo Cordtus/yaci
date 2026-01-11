@@ -1,8 +1,8 @@
 #!/bin/sh
 set -e
 
-if [ -z "$YACI_GRPC_ENDPOINT" ] || [ -z "$YACI_POSTGRES_DSN" ]; then
-  echo "YACI_GRPC_ENDPOINT and YACI_POSTGRES_DSN must be set" >&2
+if [ -z "$CHAIN_GRPC_ENDPOINT" ] || [ -z "$POSTGRES_CONN_STRING" ]; then
+  echo "CHAIN_GRPC_ENDPOINT and POSTGRES_CONN_STRING must be set" >&2
   exit 1
 fi
 
@@ -12,9 +12,16 @@ if [ "$YACI_INSECURE" = "true" ]; then
 fi
 
 START_FLAG=""
-if [ -n "$YACI_START_HEIGHT" ]; then
-  START_FLAG="-s $YACI_START_HEIGHT"
+if [ -n "$YACI_START" ]; then
+  START_FLAG="-s $YACI_START"
 fi
 
-# Go code auto-resumes from last indexed block when no -s flag is passed
-exec yaci extract postgres "$YACI_GRPC_ENDPOINT" -p "$YACI_POSTGRES_DSN" --live --enable-prometheus --prometheus-addr 0.0.0.0:2112 -c "${YACI_CONCURRENCY:-5}" $INSECURE_FLAG $START_FLAG "$@"
+exec yaci extract postgres "$CHAIN_GRPC_ENDPOINT" \
+  -p "$POSTGRES_CONN_STRING" \
+  --live \
+  --enable-prometheus \
+  --prometheus-addr 0.0.0.0:2112 \
+  -c "${YACI_MAX_CONCURRENCY:-5}" \
+  $INSECURE_FLAG \
+  $START_FLAG \
+  "$@"

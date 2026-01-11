@@ -19,19 +19,19 @@ SYSTEMD_DIR="/etc/systemd/system"
 
 # Helper functions
 info() {
-    echo -e "${BLUE}ℹ${NC} $1"
+    echo -e "${BLUE}[i]${NC} $1"
 }
 
 success() {
-    echo -e "${GREEN}✓${NC} $1"
+    echo -e "${GREEN}[+]${NC} $1"
 }
 
 warning() {
-    echo -e "${YELLOW}⚠${NC} $1"
+    echo -e "${YELLOW}[!]${NC} $1"
 }
 
 error() {
-    echo -e "${RED}✗${NC} $1"
+    echo -e "${RED}[x]${NC} $1"
     exit 1
 }
 
