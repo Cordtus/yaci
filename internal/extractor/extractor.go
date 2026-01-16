@@ -13,6 +13,11 @@ import (
 const (
 	blockMethodFullName = "cosmos.tx.v1beta1.Service.GetBlockWithTxs"
 	txMethodFullName    = "cosmos.tx.v1beta1.Service.GetTx"
+
+	// maxPrunedNodeRecoveryAttempts limits how many times we adjust the start height
+	// due to pruned node errors before giving up. This prevents infinite loops if
+	// the node's pruning boundary keeps advancing during extraction.
+	maxPrunedNodeRecoveryAttempts = 10
 )
 
 // Extract extracts blocks and transactions from a gRPC server.
@@ -38,6 +43,7 @@ func Extract(gRPCClient *client.GRPCClient, outputHandler output.OutputHandler, 
 		}
 	} else {
 		// Batch extraction with pruned node recovery
+		recoveryAttempts := 0
 		for {
 			slog.Info("Starting extraction", "start", config.BlockStart, "stop", config.BlockStop)
 			err := extractBlocksAndTransactions(gRPCClient, config.BlockStart, config.BlockStop, outputHandler, config.MaxConcurrency, config.MaxRetries)
@@ -51,10 +57,16 @@ func Extract(gRPCClient *client.GRPCClient, outputHandler output.OutputHandler, 
 				return recoveryErr
 			}
 			if newStart > 0 {
+				recoveryAttempts++
+				if recoveryAttempts > maxPrunedNodeRecoveryAttempts {
+					return fmt.Errorf("exceeded maximum pruned node recovery attempts (%d): pruning boundary keeps advancing (last boundary: %d)",
+						maxPrunedNodeRecoveryAttempts, newStart)
+				}
 				slog.Warn("Adjusting start height due to pruned node",
 					"original_start", config.BlockStart,
 					"new_start", newStart,
-					"skipped_blocks", newStart-config.BlockStart)
+					"skipped_blocks", newStart-config.BlockStart,
+					"recovery_attempt", recoveryAttempts)
 				config.BlockStart = newStart
 				continue
 			}
