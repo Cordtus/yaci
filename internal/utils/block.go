@@ -17,6 +17,13 @@ const getBlockByHeightMethod = "cosmos.base.tendermint.v1beta1.Service.GetBlockB
 // lowestHeightRegex matches pruned node error messages like "lowest height is 28566001"
 var lowestHeightRegex = regexp.MustCompile(`lowest height is (\d+)`)
 
+// GRPCResponseFunc is a function type for getting gRPC responses, allowing dependency injection for testing.
+type GRPCResponseFunc func(gRPCClient *client.GRPCClient, methodFullName string, maxRetries uint, inputParams []byte) ([]byte, error)
+
+// grpcResponseGetter is the default implementation that uses GetGRPCResponse.
+// It can be replaced in tests for mocking.
+var grpcResponseGetter GRPCResponseFunc = GetGRPCResponse
+
 // GetLatestBlockHeightWithRetry retrieves the latest block height from the gRPC server with retry logic.
 func GetLatestBlockHeightWithRetry(gRPCClient *client.GRPCClient, maxRetries uint) (uint64, error) {
 	return ExtractGRPCField(
@@ -42,7 +49,7 @@ func GetEarliestBlockHeight(gRPCClient *client.GRPCClient, maxRetries uint) (uin
 	inputParams := []byte(`{"height":"1"}`)
 
 	// Fast path: single attempt to check if block 1 exists
-	_, err := GetGRPCResponse(gRPCClient, getBlockByHeightMethod, 1, inputParams)
+	_, err := grpcResponseGetter(gRPCClient, getBlockByHeightMethod, 1, inputParams)
 	if err == nil {
 		return 1, nil // Archive node with full history
 	}
@@ -53,7 +60,7 @@ func GetEarliestBlockHeight(gRPCClient *client.GRPCClient, maxRetries uint) (uin
 	}
 
 	// Error was neither "block exists" nor "pruned" - retry in case of transient failure
-	_, err = GetGRPCResponse(gRPCClient, getBlockByHeightMethod, maxRetries, inputParams)
+	_, err = grpcResponseGetter(gRPCClient, getBlockByHeightMethod, maxRetries, inputParams)
 	if err == nil {
 		return 1, nil
 	}
