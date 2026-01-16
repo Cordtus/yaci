@@ -14,6 +14,9 @@ import (
 const statusMethod = "cosmos.base.node.v1beta1.Service.Status"
 const getBlockByHeightMethod = "cosmos.base.tendermint.v1beta1.Service.GetBlockByHeight"
 
+// lowestHeightRegex matches pruned node error messages like "lowest height is 28566001"
+var lowestHeightRegex = regexp.MustCompile(`lowest height is (\d+)`)
+
 // GetLatestBlockHeightWithRetry retrieves the latest block height from the gRPC server with retry logic.
 func GetLatestBlockHeightWithRetry(gRPCClient *client.GRPCClient, maxRetries uint) (uint64, error) {
 	return ExtractGRPCField(
@@ -61,8 +64,7 @@ func GetEarliestBlockHeight(gRPCClient *client.GRPCClient, maxRetries uint) (uin
 // ParseLowestHeightFromError extracts lowest height from pruned node errors.
 // CosmosSDK nodes return errors like "height 1 is not available, lowest height is 28566001".
 func ParseLowestHeightFromError(errMsg string) uint64 {
-	re := regexp.MustCompile(`lowest height is (\d+)`)
-	matches := re.FindStringSubmatch(strings.ToLower(errMsg))
+	matches := lowestHeightRegex.FindStringSubmatch(strings.ToLower(errMsg))
 
 	if len(matches) >= 2 {
 		height, err := strconv.ParseUint(matches[1], 10, 64)
