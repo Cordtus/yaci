@@ -6,8 +6,9 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/manifest-network/yaci/internal/client"
 	"github.com/pkg/errors"
+
+	"github.com/manifest-network/yaci/internal/client"
 )
 
 const statusMethod = "cosmos.base.node.v1beta1.Service.Status"
@@ -44,7 +45,7 @@ func GetEarliestBlockHeight(gRPCClient *client.GRPCClient, maxRetries uint) (uin
 	}
 
 	// Check if error reveals the pruning boundary
-	if lowestHeight := parseLowestHeightFromError(err.Error()); lowestHeight > 0 {
+	if lowestHeight := ParseLowestHeightFromError(err.Error()); lowestHeight > 0 {
 		return lowestHeight, nil
 	}
 
@@ -57,9 +58,9 @@ func GetEarliestBlockHeight(gRPCClient *client.GRPCClient, maxRetries uint) (uin
 	return 0, fmt.Errorf("failed to determine earliest block height: %w", err)
 }
 
-// parseLowestHeightFromError extracts lowest height from pruned node errors.
+// ParseLowestHeightFromError extracts lowest height from pruned node errors.
 // CosmosSDK nodes return errors like "height 1 is not available, lowest height is 28566001".
-func parseLowestHeightFromError(errMsg string) uint64 {
+func ParseLowestHeightFromError(errMsg string) uint64 {
 	re := regexp.MustCompile(`lowest height is (\d+)`)
 	matches := re.FindStringSubmatch(strings.ToLower(errMsg))
 

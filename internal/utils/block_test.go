@@ -32,7 +32,7 @@ func TestParseLowestHeightFromError(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := parseLowestHeightFromError(tt.errMsg)
+			got := ParseLowestHeightFromError(tt.errMsg)
 			if got != tt.want {
 				t.Errorf("parseLowestHeightFromError() = %d, want %d", got, tt.want)
 			}

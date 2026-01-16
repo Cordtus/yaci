@@ -37,9 +37,24 @@ func Extract(gRPCClient *client.GRPCClient, outputHandler output.OutputHandler, 
 			return fmt.Errorf("failed to process live blocks and transactions: %w", err)
 		}
 	} else {
-		slog.Info("Starting extraction", "start", config.BlockStart, "stop", config.BlockStop)
-		err := extractBlocksAndTransactions(gRPCClient, config.BlockStart, config.BlockStop, outputHandler, config.MaxConcurrency, config.MaxRetries)
-		if err != nil {
+		// Batch extraction with pruned node recovery
+		for {
+			slog.Info("Starting extraction", "start", config.BlockStart, "stop", config.BlockStop)
+			err := extractBlocksAndTransactions(gRPCClient, config.BlockStart, config.BlockStop, outputHandler, config.MaxConcurrency, config.MaxRetries)
+			if err == nil {
+				return nil
+			}
+
+			// Check if error is due to pruned node with higher boundary
+			if newStart := utils.ParseLowestHeightFromError(err.Error()); newStart > config.BlockStart {
+				slog.Warn("Adjusting start height due to pruned node",
+					"original_start", config.BlockStart,
+					"new_start", newStart,
+					"skipped_blocks", newStart-config.BlockStart)
+				config.BlockStart = newStart
+				continue
+			}
+
 			return fmt.Errorf("failed to process blocks and transactions: %w", err)
 		}
 	}
