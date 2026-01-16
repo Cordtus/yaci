@@ -7,9 +7,10 @@ import (
 	"net"
 	"net/http"
 
-	"github.com/manifest-network/yaci/internal/metrics/collectors"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+
+	"github.com/manifest-network/yaci/internal/metrics/collectors"
 
 	_ "github.com/manifest-network/yaci/internal/metrics/collectors" // Import all collectors
 )

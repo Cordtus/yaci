@@ -8,10 +8,11 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/manifest-network/yaci/internal/client"
-	"github.com/manifest-network/yaci/internal/config"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+
+	"github.com/manifest-network/yaci/internal/client"
+	"github.com/manifest-network/yaci/internal/config"
 )
 
 var (

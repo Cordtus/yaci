@@ -7,13 +7,14 @@ import (
 	"fmt"
 	"log/slog"
 
+	"github.com/schollz/progressbar/v3"
+	"golang.org/x/sync/errgroup"
+
 	"github.com/manifest-network/yaci/internal/client"
 	"github.com/manifest-network/yaci/internal/config"
 	"github.com/manifest-network/yaci/internal/models"
 	"github.com/manifest-network/yaci/internal/output"
 	"github.com/manifest-network/yaci/internal/utils"
-	"github.com/schollz/progressbar/v3"
-	"golang.org/x/sync/errgroup"
 )
 
 // extractBlocksAndTransactions extracts blocks and transactions from the gRPC server.
