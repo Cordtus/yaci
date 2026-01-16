@@ -1,13 +1,28 @@
 package utils
 
 import (
+	"fmt"
+	"regexp"
 	"strconv"
+	"strings"
+
+	"github.com/pkg/errors"
 
 	"github.com/manifest-network/yaci/internal/client"
-	"github.com/pkg/errors"
 )
 
 const statusMethod = "cosmos.base.node.v1beta1.Service.Status"
+const getBlockByHeightMethod = "cosmos.base.tendermint.v1beta1.Service.GetBlockByHeight"
+
+// lowestHeightRegex matches pruned node error messages like "lowest height is 28566001"
+var lowestHeightRegex = regexp.MustCompile(`lowest height is (\d+)`)
+
+// GRPCResponseFunc is a function type for getting gRPC responses, allowing dependency injection for testing.
+type GRPCResponseFunc func(gRPCClient *client.GRPCClient, methodFullName string, maxRetries uint, inputParams []byte) ([]byte, error)
+
+// grpcResponseGetter is the default implementation that uses GetGRPCResponse.
+// It can be replaced in tests for mocking.
+var grpcResponseGetter GRPCResponseFunc = GetGRPCResponse
 
 // GetLatestBlockHeightWithRetry retrieves the latest block height from the gRPC server with retry logic.
 func GetLatestBlockHeightWithRetry(gRPCClient *client.GRPCClient, maxRetries uint) (uint64, error) {
@@ -24,4 +39,46 @@ func GetLatestBlockHeightWithRetry(gRPCClient *client.GRPCClient, maxRetries uin
 			return height, nil
 		},
 	)
+}
+
+// GetEarliestBlockHeight determines the earliest available block on a node.
+// It probes block 1 to check if the node is an archive node or pruned.
+// For archive nodes, returns 1. For pruned nodes, parses the error message
+// to extract the lowest available height.
+func GetEarliestBlockHeight(gRPCClient *client.GRPCClient, maxRetries uint) (uint64, error) {
+	inputParams := []byte(`{"height":"1"}`)
+
+	// Fast path: single attempt to check if block 1 exists
+	_, err := grpcResponseGetter(gRPCClient, getBlockByHeightMethod, 1, inputParams)
+	if err == nil {
+		return 1, nil // Archive node with full history
+	}
+
+	// Check if error reveals the pruning boundary
+	if lowestHeight := ParseLowestHeightFromError(err.Error()); lowestHeight > 0 {
+		return lowestHeight, nil
+	}
+
+	// Error was neither "block exists" nor "pruned" - retry in case of transient failure
+	_, err = grpcResponseGetter(gRPCClient, getBlockByHeightMethod, maxRetries, inputParams)
+	if err == nil {
+		return 1, nil
+	}
+
+	return 0, fmt.Errorf("failed to determine earliest block height: %w", err)
+}
+
+// ParseLowestHeightFromError extracts lowest height from pruned node errors.
+// CosmosSDK nodes return errors like "height 1 is not available, lowest height is 28566001".
+func ParseLowestHeightFromError(errMsg string) uint64 {
+	matches := lowestHeightRegex.FindStringSubmatch(strings.ToLower(errMsg))
+
+	if len(matches) >= 2 {
+		height, err := strconv.ParseUint(matches[1], 10, 64)
+		if err == nil {
+			return height
+		}
+	}
+
+	return 0
 }

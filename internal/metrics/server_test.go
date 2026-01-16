@@ -9,9 +9,10 @@ import (
 	"time"
 
 	"github.com/DATA-DOG/go-sqlmock"
+	"github.com/stretchr/testify/require"
+
 	"github.com/manifest-network/yaci/internal/metrics"
 	"github.com/manifest-network/yaci/internal/metrics/collectors"
-	"github.com/stretchr/testify/require"
 )
 
 func TestCreateMetricsServer(t *testing.T) {

@@ -7,13 +7,14 @@ import (
 	"fmt"
 	"log/slog"
 
+	"github.com/schollz/progressbar/v3"
+	"golang.org/x/sync/errgroup"
+
 	"github.com/manifest-network/yaci/internal/client"
 	"github.com/manifest-network/yaci/internal/config"
 	"github.com/manifest-network/yaci/internal/models"
 	"github.com/manifest-network/yaci/internal/output"
 	"github.com/manifest-network/yaci/internal/utils"
-	"github.com/schollz/progressbar/v3"
-	"golang.org/x/sync/errgroup"
 )
 
 // extractBlocksAndTransactions extracts blocks and transactions from the gRPC server.
@@ -24,6 +25,7 @@ func extractBlocksAndTransactions(gRPCClient *client.GRPCClient, start, stop uin
 	} else {
 		slog.Info("Extracting blocks and transactions", "height", start)
 	}
+
 	var bar *progressbar.ProgressBar
 	if displayProgress {
 		bar = progressbar.NewOptions64(
@@ -101,15 +103,18 @@ func processBlocks(gRPCClient *client.GRPCClient, start, stop uint64, outputHand
 
 			err := processSingleBlockWithRetry(clientWithCtx, blockHeight, outputHandler, maxRetries)
 			if err != nil {
-				if !errors.Is(err, context.Canceled) {
-					slog.Error("Block processing error",
+				if errors.Is(err, context.Canceled) {
+					slog.Debug("Block processing cancelled",
 						"height", blockHeight,
-						"error", err,
-						"errorType", fmt.Sprintf("%T", err))
-					return err
+						"error", err)
+					return fmt.Errorf("failed to process block %d: %w", blockHeight, err)
 				}
-				slog.Error("Failed to process block", "height", blockHeight, "error", err, "retries", maxRetries)
-				return fmt.Errorf("failed to process block %d: %w", blockHeight, err)
+
+				slog.Error("Block processing error",
+					"height", blockHeight,
+					"error", err,
+					"errorType", fmt.Sprintf("%T", err))
+				return err
 			}
 
 			if bar != nil {

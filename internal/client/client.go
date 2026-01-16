@@ -7,10 +7,11 @@ import (
 	"os"
 	"time"
 
-	"github.com/manifest-network/yaci/internal/reflection"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/keepalive"
+
+	"github.com/manifest-network/yaci/internal/reflection"
 )
 
 var keepaliveParams = keepalive.ClientParameters{
