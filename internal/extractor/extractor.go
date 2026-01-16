@@ -35,6 +35,24 @@ func Extract(gRPCClient *client.GRPCClient, outputHandler output.OutputHandler, 
 		}
 	}
 
+	// Warm-up: validate start height against potential load balancer inconsistencies
+	validatedStart, err := warmUpStartHeight(gRPCClient, config.BlockStart, outputHandler, config.MaxConcurrency, config.MaxRetries)
+	if err != nil {
+		return err
+	}
+	if validatedStart != config.BlockStart {
+		slog.Info("Start height adjusted after warm-up",
+			"original", config.BlockStart,
+			"validated", validatedStart)
+		config.BlockStart = validatedStart
+	}
+
+	// In batch mode, verify the adjusted start doesn't exceed the stop block
+	if !config.LiveMonitoring && config.BlockStart > config.BlockStop {
+		return fmt.Errorf("pruned node boundary (%d) exceeds requested stop block (%d): requested range is unavailable",
+			config.BlockStart, config.BlockStop)
+	}
+
 	if config.LiveMonitoring {
 		slog.Info("Starting live extraction", "block_time", config.BlockTime)
 		err := extractLiveBlocksAndTransactions(gRPCClient, config.BlockStart, outputHandler, config.BlockTime, config.MaxConcurrency, config.MaxRetries)
@@ -42,35 +60,9 @@ func Extract(gRPCClient *client.GRPCClient, outputHandler output.OutputHandler, 
 			return fmt.Errorf("failed to process live blocks and transactions: %w", err)
 		}
 	} else {
-		// Batch extraction with pruned node recovery
-		recoveryAttempts := 0
-		for {
-			slog.Info("Starting extraction", "start", config.BlockStart, "stop", config.BlockStop)
-			err := extractBlocksAndTransactions(gRPCClient, config.BlockStart, config.BlockStop, outputHandler, config.MaxConcurrency, config.MaxRetries)
-			if err == nil {
-				return nil
-			}
-
-			// Check if error is due to pruned node with higher boundary
-			newStart, recoveryErr := validatePrunedNodeRecovery(err.Error(), config.BlockStart, config.BlockStop)
-			if recoveryErr != nil {
-				return recoveryErr
-			}
-			if newStart > 0 {
-				recoveryAttempts++
-				if recoveryAttempts > maxPrunedNodeRecoveryAttempts {
-					return fmt.Errorf("exceeded maximum pruned node recovery attempts (%d): pruning boundary keeps advancing (last boundary: %d)",
-						maxPrunedNodeRecoveryAttempts, newStart)
-				}
-				slog.Warn("Adjusting start height due to pruned node",
-					"original_start", config.BlockStart,
-					"new_start", newStart,
-					"skipped_blocks", newStart-config.BlockStart,
-					"recovery_attempt", recoveryAttempts)
-				config.BlockStart = newStart
-				continue
-			}
-
+		slog.Info("Starting extraction", "start", config.BlockStart, "stop", config.BlockStop)
+		err := extractBlocksAndTransactions(gRPCClient, config.BlockStart, config.BlockStop, outputHandler, config.MaxConcurrency, config.MaxRetries)
+		if err != nil {
 			return fmt.Errorf("failed to process blocks and transactions: %w", err)
 		}
 	}
@@ -141,17 +133,41 @@ func shouldSkipMissingBlockCheck(cfg config.ExtractConfig) bool {
 	return (cfg.BlockStart != 0 && cfg.BlockStop != 0) || cfg.ReIndex
 }
 
-// validatePrunedNodeRecovery checks if recovery from a pruned node error is possible.
-// It returns the new start height if recovery is valid, 0 if the error is not a pruned node error,
-// or an error if the pruned node boundary exceeds the stop block.
-func validatePrunedNodeRecovery(errMsg string, currentStart, blockStop uint64) (uint64, error) {
-	newStart := utils.ParseLowestHeightFromError(errMsg)
-	if newStart <= currentStart {
-		return 0, nil // Not a pruned node error we can recover from
+// warmUpStartHeight validates that the start height is available by attempting to
+// fetch a single block. If the node returns a pruned error with a higher boundary,
+// it adjusts the start height and retries. This handles load balancer scenarios
+// where different nodes may have different pruning boundaries.
+func warmUpStartHeight(
+	gRPCClient *client.GRPCClient,
+	start uint64,
+	outputHandler output.OutputHandler,
+	maxConcurrency, maxRetries uint,
+) (uint64, error) {
+	currentStart := start
+
+	for attempt := 0; attempt <= maxPrunedNodeRecoveryAttempts; attempt++ {
+		// Try to fetch just the start block
+		err := extractBlocksAndTransactions(gRPCClient, currentStart, currentStart, outputHandler, maxConcurrency, maxRetries)
+		if err == nil {
+			return currentStart, nil
+		}
+
+		// Check if error is due to pruned node with higher boundary
+		newStart := utils.ParseLowestHeightFromError(err.Error())
+		if newStart > currentStart {
+			slog.Warn("Warm-up: adjusting start height due to pruned node",
+				"original_start", currentStart,
+				"new_start", newStart,
+				"skipped_blocks", newStart-currentStart,
+				"attempt", attempt+1)
+			currentStart = newStart
+			continue
+		}
+
+		// Non-recoverable error
+		return 0, fmt.Errorf("warm-up failed: %w", err)
 	}
-	if newStart > blockStop {
-		return 0, fmt.Errorf("pruned node boundary (%d) exceeds requested stop block (%d): requested range [%d-%d] is unavailable",
-			newStart, blockStop, currentStart, blockStop)
-	}
-	return newStart, nil
+
+	return 0, fmt.Errorf("warm-up exceeded maximum attempts (%d): pruning boundary keeps changing",
+		maxPrunedNodeRecoveryAttempts)
 }
