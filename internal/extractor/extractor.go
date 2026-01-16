@@ -46,7 +46,11 @@ func Extract(gRPCClient *client.GRPCClient, outputHandler output.OutputHandler, 
 			}
 
 			// Check if error is due to pruned node with higher boundary
-			if newStart := utils.ParseLowestHeightFromError(err.Error()); newStart > config.BlockStart {
+			newStart, recoveryErr := validatePrunedNodeRecovery(err.Error(), config.BlockStart, config.BlockStop)
+			if recoveryErr != nil {
+				return recoveryErr
+			}
+			if newStart > 0 {
 				slog.Warn("Adjusting start height due to pruned node",
 					"original_start", config.BlockStart,
 					"new_start", newStart,
@@ -123,4 +127,19 @@ func setBlockRange(gRPCClient *client.GRPCClient, outputHandler output.OutputHan
 // shouldSkipMissingBlockCheck returns true if the missing block check should be skipped.
 func shouldSkipMissingBlockCheck(cfg config.ExtractConfig) bool {
 	return (cfg.BlockStart != 0 && cfg.BlockStop != 0) || cfg.ReIndex
+}
+
+// validatePrunedNodeRecovery checks if recovery from a pruned node error is possible.
+// It returns the new start height if recovery is valid, 0 if the error is not a pruned node error,
+// or an error if the pruned node boundary exceeds the stop block.
+func validatePrunedNodeRecovery(errMsg string, currentStart, blockStop uint64) (uint64, error) {
+	newStart := utils.ParseLowestHeightFromError(errMsg)
+	if newStart <= currentStart {
+		return 0, nil // Not a pruned node error we can recover from
+	}
+	if newStart > blockStop {
+		return 0, fmt.Errorf("pruned node boundary (%d) exceeds requested stop block (%d): requested range [%d-%d] is unavailable",
+			newStart, blockStop, currentStart, blockStop)
+	}
+	return newStart, nil
 }
