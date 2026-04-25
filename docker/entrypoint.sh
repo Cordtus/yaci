@@ -7,5 +7,5 @@ if [ -z "$YACI_GRPC_ENDPOINT" ] || [ -z "$YACI_POSTGRES_DSN" ]; then
 fi
 
 # Go code auto-resumes from last indexed block when no -s flag is passed
-# --enable-block-results extracts finalize_block_events for jailing/slashing data
-exec yaci extract postgres "$YACI_GRPC_ENDPOINT" -p "$YACI_POSTGRES_DSN" --live --enable-prometheus --prometheus-addr 0.0.0.0:2112 --enable-block-results -c "${YACI_CONCURRENCY:-5}" "$@"
+# extracts finalize_block_events for jailing/slashing data
+exec yaci extract postgres "$YACI_GRPC_ENDPOINT" -p "$YACI_POSTGRES_DSN" --live -c "${YACI_CONCURRENCY:-5}" "$@"
