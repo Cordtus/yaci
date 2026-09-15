@@ -183,6 +183,24 @@ The configuration file is searched in the following order:
 - The user's home directory (`$HOME/.yaci`)
 - The system's configuration directory (`/etc/yaci`)
 
+## Troubleshooting
+
+### TLS server does not advertise ALPN
+
+grpc-go rejects TLS connections to servers that don't negotiate ALPN with:
+
+```
+credentials: cannot check peer: missing selected ALPN property
+```
+
+This is enforced by default in recent grpc-go versions. To connect to such a
+server, set `GRPC_ENFORCE_ALPN_ENABLED=false`. grpc-go reads this variable when
+the process starts, so export it in the environment before launching `yaci`:
+
+```shell
+GRPC_ENFORCE_ALPN_ENABLED=false yaci extract ...
+```
+
 ## Demo
 
 To run the demo, you need to have Docker installed on your system. Then, you can run the following command:
