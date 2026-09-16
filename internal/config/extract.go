@@ -20,6 +20,7 @@ type ExtractConfig struct {
 	MaxRecvMsgSize       int
 	EnablePrometheus     bool
 	PrometheusListenAddr string
+	EnableBlockResults   bool // Fetch block results (finalize_block_events) via gRPC
 }
 
 func (c ExtractConfig) Validate() error {
@@ -57,5 +58,6 @@ func LoadExtractConfigFromCLI() ExtractConfig {
 		MaxRecvMsgSize:       viper.GetInt("max-recv-msg-size"),
 		EnablePrometheus:     viper.GetBool("enable-prometheus"),
 		PrometheusListenAddr: viper.GetString("prometheus-addr"),
+		EnableBlockResults:   viper.GetBool("enable-block-results"),
 	}
 }

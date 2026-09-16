@@ -11,8 +11,9 @@ import (
 )
 
 const (
-	blockMethodFullName = "cosmos.tx.v1beta1.Service.GetBlockWithTxs"
-	txMethodFullName    = "cosmos.tx.v1beta1.Service.GetTx"
+	blockMethodFullName        = "cosmos.tx.v1beta1.Service.GetBlockWithTxs"
+	txMethodFullName           = "cosmos.tx.v1beta1.Service.GetTx"
+	blockResultsMethodFullName = "cosmos.base.tendermint.v1beta1.Service.GetBlockResults"
 )
 
 // Extract extracts blocks and transactions from a gRPC server.
@@ -30,15 +31,19 @@ func Extract(gRPCClient *client.GRPCClient, outputHandler output.OutputHandler, 
 		}
 	}
 
+	if config.EnableBlockResults {
+		slog.Info("Block results fetching enabled (finalize_block_events)")
+	}
+
 	if config.LiveMonitoring {
 		slog.Info("Starting live extraction", "block_time", config.BlockTime)
-		err := extractLiveBlocksAndTransactions(gRPCClient, config.BlockStart, outputHandler, config.BlockTime, config.MaxConcurrency, config.MaxRetries)
+		err := extractLiveBlocksAndTransactions(gRPCClient, config.BlockStart, outputHandler, config)
 		if err != nil {
 			return fmt.Errorf("failed to process live blocks and transactions: %w", err)
 		}
 	} else {
 		slog.Info("Starting extraction", "start", config.BlockStart, "stop", config.BlockStop)
-		err := extractBlocksAndTransactions(gRPCClient, config.BlockStart, config.BlockStop, outputHandler, config.MaxConcurrency, config.MaxRetries)
+		err := extractBlocksAndTransactions(gRPCClient, config.BlockStart, config.BlockStop, outputHandler, config)
 		if err != nil {
 			return fmt.Errorf("failed to process blocks and transactions: %w", err)
 		}

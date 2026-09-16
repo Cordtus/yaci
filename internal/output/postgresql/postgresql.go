@@ -1,12 +1,14 @@
 package postgresql
 
 import (
+	"bytes"
 	"context"
 	"embed"
 	_ "embed"
 	"errors"
 	"fmt"
 	"log/slog"
+	"regexp"
 
 	"github.com/golang-migrate/migrate/v4"
 	migratepgx "github.com/golang-migrate/migrate/v4/database/pgx"
@@ -145,6 +147,34 @@ func (h *PostgresOutputHandler) WriteBlockWithTransactions(ctx context.Context, 
 		return fmt.Errorf("failed to commit transaction: %w", err)
 	}
 
+	return nil
+}
+
+// sanitizeJSONForPostgres removes null bytes and invalid Unicode escape sequences
+// that PostgreSQL JSONB doesn't accept. This is common in protobuf-to-JSON conversions.
+func sanitizeJSONForPostgres(data []byte) []byte {
+	// Remove literal null bytes (0x00)
+	data = bytes.ReplaceAll(data, []byte{0x00}, nil)
+
+	// Remove \u0000 escape sequences (JSON-encoded null bytes)
+	nullEscapePattern := regexp.MustCompile(`\\u0000`)
+	data = nullEscapePattern.ReplaceAll(data, nil)
+
+	return data
+}
+
+func (h *PostgresOutputHandler) WriteBlockResults(ctx context.Context, blockResults *models.BlockResults) error {
+	// Sanitize JSON data to remove null bytes and invalid Unicode sequences
+	// that PostgreSQL JSONB doesn't accept
+	sanitizedData := sanitizeJSONForPostgres(blockResults.Data)
+
+	_, err := h.pool.Exec(ctx, `
+		INSERT INTO api.block_results_raw (height, data) VALUES ($1, $2)
+		ON CONFLICT (height) DO UPDATE SET data = EXCLUDED.data;
+	`, blockResults.Height, sanitizedData)
+	if err != nil {
+		return fmt.Errorf("failed to write block results: %w", err)
+	}
 	return nil
 }
 

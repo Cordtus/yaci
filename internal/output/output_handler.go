@@ -10,6 +10,10 @@ type OutputHandler interface {
 	// WriteBlockWithTransactions writes a block and its transactions to the output.
 	WriteBlockWithTransactions(ctx context.Context, block *models.Block, transactions []*models.Transaction) error
 
+	// WriteBlockResults writes block results (finalize_block_events) to the output.
+	// Block results contain consensus-level events like slashing, jailing, and validator updates.
+	WriteBlockResults(ctx context.Context, blockResults *models.BlockResults) error
+
 	// GetLatestBlock returns the latest block from the output.
 	GetLatestBlock(ctx context.Context) (*models.Block, error)
 
