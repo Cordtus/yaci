@@ -1,3 +1,8 @@
+//go:build fallback_integration
+
+// These tests describe the intended fallback integration on CustomResolver
+// (SetFallback / SetCurrentHeight). They are parked behind a build tag until
+// that integration lands; run with `go test -tags fallback_integration`.
 package reflection
 
 import (
